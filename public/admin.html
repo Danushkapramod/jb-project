@@ -381,7 +381,7 @@
 
       const spinner = document.getElementById('qrLoadingSpinner');
       spinner.classList.remove('hidden');
-      spinner.querySelector('p').textContent = 'Restarting WhatsApp Chromium engine...';
+      spinner.querySelector('p').textContent = 'Restarting WhatsApp Chromium engine (takes 5-15s)...';
       document.getElementById('qrImage').classList.add('hidden');
       document.getElementById('qrInstructions').classList.add('hidden');
       document.getElementById('connectedBanner').classList.add('hidden');
@@ -391,7 +391,7 @@
       try {
         const res = await fetch(`${window.CONFIG.API_URL}/api/whatsapp/reconnect`, { method: 'POST' });
         const data = await res.json();
-        appendLog({ timestamp: new Date().toLocaleTimeString(), message: 'Restart command received by server. Initializing browser...' });
+        appendLog({ timestamp: new Date().toLocaleTimeString(), message: 'Restart command received by server. Launching Chromium...' });
       } catch (e) {
         appendLog({ timestamp: new Date().toLocaleTimeString(), message: 'Warning during restart request, syncing status...' });
       } finally {
@@ -400,7 +400,7 @@
             btn.disabled = false;
             btn.innerHTML = `<i class="fa-solid fa-rotate-right mr-1"></i><span>Restart Session</span>`;
           }
-        }, 2000);
+        }, 3000);
       }
     }
 

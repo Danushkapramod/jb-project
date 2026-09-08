@@ -452,10 +452,11 @@ router.get('/whatsapp/status', (req, res) => {
 // POST /api/whatsapp/reconnect - Trigger WhatsApp reconnect (non-blocking)
 router.post('/whatsapp/reconnect', (req, res) => {
   res.json({ success: true, message: 'WhatsApp session restart initiated. Restarting Chromium engine...' });
-  whatsappService.initialize().catch((err) => {
+  whatsappService.initialize(true).catch((err) => {
     console.error('Background reconnect error:', err);
   });
 });
+
 
 // POST /api/whatsapp/disconnect - Force logout, purge local session files, and generate a new QR code
 router.post(['/whatsapp/disconnect', '/whatsapp/logout'], (req, res) => {

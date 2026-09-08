@@ -7,7 +7,7 @@ const { execSync } = require('child_process');
 function killOrphanedWwebjsChrome() {
   if (process.platform !== 'win32') return;
   try {
-    const psScript = 'Get-CimInstance Win32_Process -Filter "Name = \'chrome.exe\'" | Where-Object { $_.CommandLine -like "*wwebjs_auth*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }';
+    const psScript = 'Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*wwebjs_auth*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }';
     const b64 = Buffer.from(psScript, 'utf16le').toString('base64');
     execSync('powershell -NoProfile -NonInteractive -EncodedCommand ' + b64, { stdio: 'ignore' });
   } catch (err) {}
@@ -18,10 +18,14 @@ function getChromiumExecutablePath() {
     return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
   const candidates = [
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
     '/usr/bin/google-chrome-stable',
-    '/usr/bin/google-chrome'
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser'
   ];
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
@@ -39,6 +43,9 @@ class WhatsAppService {
     this.io = null;
     this.recentLogs = [];
     this.isDisconnecting = false;
+    this.isInitializing = false;
+    this.initWatchdog = null;
+    this.initStartTime = 0;
   }
 
   setSocket(io) {
@@ -56,12 +63,35 @@ class WhatsAppService {
     }
   }
 
-  async initialize() {
-    if (this.isInitializing) {
-      this.log('WhatsApp initialization already in progress, please wait...', 'warn');
-      return;
+  async initialize(force = false) {
+    const now = Date.now();
+    if (this.isInitializing && !force) {
+      if (now - this.initStartTime < 30000) {
+        this.log('WhatsApp initialization already in progress, please wait...', 'warn');
+        return;
+      }
+      this.log('Previous initialization was stale (>30s). Forcing clean restart...', 'warn');
     }
+
     this.isInitializing = true;
+    this.initStartTime = now;
+
+    if (this.initWatchdog) {
+      clearTimeout(this.initWatchdog);
+      this.initWatchdog = null;
+    }
+
+    // Set 40-second watchdog: if initialization hangs, release lock so user can retry immediately
+    this.initWatchdog = setTimeout(() => {
+      if (this.status === 'INITIALIZING') {
+        this.log('Initialization took over 40s. Unblocking engine lock. Click "Restart Session" to re-launch.', 'warn');
+        this.isInitializing = false;
+        killOrphanedWwebjsChrome();
+        if (this.io) {
+          this.io.emit('whatsapp_status', this.getStatus());
+        }
+      }
+    }, 40000);
 
     if (this.client) {
       try {
@@ -110,25 +140,17 @@ class WhatsAppService {
       }),
       puppeteer: {
         headless: true,
-        protocolTimeout: 120000,
+        protocolTimeout: 90000,
         executablePath: execPath,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
+          '--disable-gpu',
           '--no-first-run',
           '--no-zygote',
-          '--disable-gpu',
-          '--disable-extensions',
-          '--disable-software-rasterizer',
-          '--disable-default-apps',
-          '--renderer-process-limit=1',
-          '--disable-features=site-per-process,IsolateOrigins',
           '--mute-audio',
-          '--no-default-browser-check',
-          '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          '--js-flags=--max-old-space-size=160'
+          '--no-default-browser-check'
         ],
         bypassCSP: true
       },
@@ -138,8 +160,16 @@ class WhatsAppService {
       }
     });
 
-    this.client.on('qr', async (qr) => {
+    const clearWatchdog = () => {
+      if (this.initWatchdog) {
+        clearTimeout(this.initWatchdog);
+        this.initWatchdog = null;
+      }
       this.isInitializing = false;
+    };
+
+    this.client.on('qr', async (qr) => {
+      clearWatchdog();
       this.status = 'WAITING_FOR_QR_SCAN';
       this.qrRaw = qr;
       this.log('New QR code received. Ready to scan from WhatsApp mobile app.');
@@ -162,6 +192,7 @@ class WhatsAppService {
     });
 
     this.client.on('authenticated', () => {
+      clearWatchdog();
       this.status = 'AUTHENTICATED';
       this.log('WhatsApp authenticated successfully! Preparing connection...', 'success');
       if (this.io) {
@@ -170,7 +201,7 @@ class WhatsAppService {
     });
 
     this.client.on('auth_failure', (msg) => {
-      this.isInitializing = false;
+      clearWatchdog();
       this.status = 'AUTH_FAILURE';
       this.log(`WhatsApp authentication failed: ${msg}`, 'error');
       if (this.io) {
@@ -179,7 +210,7 @@ class WhatsAppService {
     });
 
     this.client.on('ready', () => {
-      this.isInitializing = false;
+      clearWatchdog();
       this.status = 'READY';
       this.qrCodeDataUrl = null;
       this.qrRaw = null;
@@ -192,7 +223,7 @@ class WhatsAppService {
     });
 
     this.client.on('disconnected', (reason) => {
-      this.isInitializing = false;
+      clearWatchdog();
       this.status = 'DISCONNECTED';
       this.clientInfo = null;
       this.qrCodeDataUrl = null;
@@ -212,7 +243,7 @@ class WhatsAppService {
     });
 
     this.client.initialize().catch((err) => {
-      this.isInitializing = false;
+      clearWatchdog();
       this.status = 'ERROR';
       this.log(`Initialization error: ${err.message}`, 'error');
       if (this.io) {
@@ -280,7 +311,7 @@ class WhatsAppService {
 
     // 5. Start fresh WhatsApp client to generate new QR code
     this.log('Starting fresh WhatsApp client to generate new QR code...');
-    await this.initialize();
+    await this.initialize(true);
   }
 
   getStatus() {

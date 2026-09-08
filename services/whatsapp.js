@@ -80,10 +80,14 @@ class WhatsAppService {
           '--no-zygote',
           '--disable-gpu',
           '--disable-extensions',
+          '--disable-software-rasterizer',
+          '--disable-default-apps',
+          '--renderer-process-limit=1',
+          '--disable-features=site-per-process,IsolateOrigins',
           '--mute-audio',
           '--no-default-browser-check',
           '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          '--js-flags=--max-old-space-size=256'
+          '--js-flags=--max-old-space-size=160'
         ],
         bypassCSP: true
       },

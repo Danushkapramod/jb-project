@@ -378,6 +378,68 @@ router.get('/dispatch/all', async (req, res) => {
   }
 });
 
+// DELETE /api/dispatch/:id - Remove a single test or unwanted dispatch request
+router.delete('/dispatch/:id', async (req, res) => {
+  const dispatchId = req.params.id;
+  try {
+    const dispatch = await dbAsync.get('SELECT * FROM dispatches WHERE id = ?', [dispatchId]);
+    if (!dispatch) {
+      return res.status(404).json({ success: false, error: 'Dispatch request not found.' });
+    }
+
+    await dbAsync.run('DELETE FROM dispatches WHERE id = ?', [dispatchId]);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('dispatch_deleted', { id: dispatchId });
+    }
+
+    res.json({ success: true, message: `Dispatch ${dispatchId} removed successfully.` });
+  } catch (err) {
+    console.error('Delete dispatch error:', err);
+    res.status(500).json({ success: false, error: 'Failed to delete dispatch.' });
+  }
+});
+
+// POST /api/dispatch/:id/delete - Compatible fallback for POST-only environments
+router.post('/dispatch/:id/delete', async (req, res) => {
+  const dispatchId = req.params.id;
+  try {
+    const dispatch = await dbAsync.get('SELECT * FROM dispatches WHERE id = ?', [dispatchId]);
+    if (!dispatch) {
+      return res.status(404).json({ success: false, error: 'Dispatch request not found.' });
+    }
+
+    await dbAsync.run('DELETE FROM dispatches WHERE id = ?', [dispatchId]);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('dispatch_deleted', { id: dispatchId });
+    }
+
+    res.json({ success: true, message: `Dispatch ${dispatchId} removed successfully.` });
+  } catch (err) {
+    console.error('Delete dispatch error:', err);
+    res.status(500).json({ success: false, error: 'Failed to delete dispatch.' });
+  }
+});
+
+// POST /api/dispatch/clear-all - Delete all dispatches (for cleaning test data)
+router.post('/dispatch/clear-all', async (req, res) => {
+  try {
+    const result = await dbAsync.run('DELETE FROM dispatches');
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('all_dispatches_cleared');
+    }
+    res.json({ success: true, message: 'All dispatches cleared successfully.', deletedCount: result.changes });
+  } catch (err) {
+    console.error('Clear all dispatches error:', err);
+    res.status(500).json({ success: false, error: 'Failed to clear dispatches.' });
+  }
+});
+
+
 // -------------------------------------------------------------
 // WHATSAPP WEB STATUS & CONTROL ENDPOINTS
 // -------------------------------------------------------------

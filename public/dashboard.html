@@ -401,9 +401,14 @@
       </div>
 
       <!-- Modal Footer -->
-      <div class="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+      <div class="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+        <button onclick="deleteCurrentBooking()" title="Remove this test booking"
+          class="text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 font-bold py-2 px-3 rounded-xl text-xs transition inline-flex items-center space-x-1.5 shadow-xs cursor-pointer">
+          <i class="fa-solid fa-trash-can text-[11px]"></i>
+          <span>Remove Booking</span>
+        </button>
         <button onclick="closeBookingDetailsModal()"
-          class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-5 rounded-xl text-xs transition">
+          class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-5 rounded-xl text-xs transition shadow-xs cursor-pointer">
           Close
         </button>
       </div>
@@ -492,6 +497,24 @@
         handleJobLockedByOther(data.approvedBy);
       }
     });
+
+    // Listen for dispatch deletion or clear-all events (e.g. from admin cleaning test requests)
+    socket.on('dispatch_deleted', (data) => {
+      console.log('Dispatch deleted:', data);
+      if (currentJob && data && currentJob.id === data.id) {
+        closeJobModal();
+      }
+      loadPendingRequests();
+      loadMyJobs();
+    });
+
+    socket.on('all_dispatches_cleared', () => {
+      console.log('All dispatches cleared');
+      closeJobModal();
+      loadPendingRequests();
+      loadMyJobs();
+    });
+
 
     // -------------------------------------------------------------
     // PENDING REQUESTS / MESSAGES HANDLING & DISMISSAL
@@ -887,7 +910,10 @@
     // -------------------------------------------------------------
     let myAcceptedJobs = [];
 
+    let currentDetailJobId = null;
+
     function viewJobDetails(jobId) {
+      currentDetailJobId = jobId;
       const job = myAcceptedJobs.find(j => j.id === jobId);
       if (!job) return;
 
@@ -918,7 +944,27 @@
     }
 
     function closeBookingDetailsModal() {
+      currentDetailJobId = null;
       document.getElementById('bookingDetailsModal').classList.add('hidden');
+    }
+
+    async function deleteCurrentBooking() {
+      if (!currentDetailJobId) return;
+      if (!confirm(`Are you sure you want to remove booking "${currentDetailJobId}"?`)) return;
+      try {
+        const res = await fetch(`${window.CONFIG.API_URL}/api/dispatch/${encodeURIComponent(currentDetailJobId)}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          closeBookingDetailsModal();
+          loadMyJobs();
+        } else {
+          alert('⚠️ ' + (data.error || 'Failed to remove booking.'));
+        }
+      } catch (err) {
+        alert('⚠️ Network error: ' + err.message);
+      }
     }
 
     // Load History (Desktop Table + Mobile Responsive Cards)

@@ -210,15 +210,21 @@
 
     <!-- BOTTOM: Live Dispatches System Feed -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+      <div class="p-6 border-b border-slate-100 flex flex-wrap gap-3 justify-between items-center">
         <div>
           <h3 class="text-base font-bold text-slate-800">All System Dispatches (Live Stream)</h3>
           <p class="text-xs text-slate-500">Monitor all booking requests, approval statuses, and locked drivers</p>
         </div>
-        <button onclick="loadAllDispatches()" class="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center space-x-1">
-          <i class="fa-solid fa-arrows-rotate"></i>
-          <span>Refresh</span>
-        </button>
+        <div class="flex items-center space-x-2.5">
+          <button onclick="clearAllDispatches()" title="Remove all test requests" class="text-xs text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 font-semibold px-3 py-1.5 rounded-xl border border-rose-200 transition flex items-center space-x-1.5 shadow-xs cursor-pointer">
+            <i class="fa-solid fa-trash-can text-rose-500"></i>
+            <span>Clear All Requests</span>
+          </button>
+          <button onclick="loadAllDispatches()" class="text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 font-semibold px-3 py-1.5 rounded-xl border border-emerald-200 transition flex items-center space-x-1.5 shadow-xs cursor-pointer">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       <div class="overflow-x-auto">
@@ -232,11 +238,12 @@
               <th class="px-6 py-3">Location</th>
               <th class="px-6 py-3">Status</th>
               <th class="px-6 py-3">Claimed By Driver</th>
+              <th class="px-6 py-3 text-right">Action</th>
             </tr>
           </thead>
           <tbody id="allDispatchesBody" class="divide-y divide-slate-100">
             <tr>
-              <td colspan="7" class="px-6 py-8 text-center text-slate-400 text-xs">
+              <td colspan="8" class="px-6 py-8 text-center text-slate-400 text-xs">
                 <i class="fa-solid fa-spinner fa-spin text-lg mb-2 block"></i>
                 Loading dispatches...
               </td>
@@ -269,6 +276,14 @@
     });
 
     socket.on('job_locked', () => {
+      loadAllDispatches();
+    });
+
+    socket.on('dispatch_deleted', () => {
+      loadAllDispatches();
+    });
+
+    socket.on('all_dispatches_cleared', () => {
       loadAllDispatches();
     });
 
@@ -508,7 +523,7 @@
         const data = await res.json();
 
         if (!data.dispatches || data.dispatches.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-6 text-center text-slate-400 text-xs">No dispatches triggered yet.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-6 text-center text-slate-400 text-xs">No dispatches triggered yet.</td></tr>`;
           return;
         }
 
@@ -523,7 +538,7 @@
             : `<span class="text-slate-400 text-xs italic">Waiting for approval...</span>`;
 
           return `
-            <tr class="hover:bg-slate-50 transition">
+            <tr class="hover:bg-slate-50 transition" id="row-${d.id}">
               <td class="px-6 py-3.5 font-mono text-xs font-bold text-emerald-800">${d.id}</td>
               <td class="px-6 py-3.5 font-medium text-slate-800">${d.vehicle_type}</td>
               <td class="px-6 py-3.5 font-mono text-xs">${d.requester_phone}</td>
@@ -531,14 +546,56 @@
               <td class="px-6 py-3.5 text-xs text-slate-700">${d.location}</td>
               <td class="px-6 py-3.5">${statusBadge}</td>
               <td class="px-6 py-3.5">${driverClaimed}</td>
+              <td class="px-6 py-3.5 text-right whitespace-nowrap">
+                <button onclick="deleteDispatch('${d.id}')" title="Delete request"
+                  class="inline-flex items-center space-x-1.5 text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 font-semibold px-2.5 py-1 rounded-lg text-xs transition cursor-pointer shadow-xs">
+                  <i class="fa-solid fa-trash-can text-[11px]"></i>
+                  <span>Remove</span>
+                </button>
+              </td>
             </tr>
           `;
         }).join('');
 
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-red-500 text-xs">Failed to load live dispatches.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-4 text-center text-red-500 text-xs">Failed to load live dispatches.</td></tr>`;
       }
     }
+
+    async function deleteDispatch(id) {
+      if (!confirm(`Are you sure you want to remove request "${id}"?`)) return;
+      try {
+        const res = await fetch(`${window.CONFIG.API_URL}/api/dispatch/${encodeURIComponent(id)}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          loadAllDispatches();
+        } else {
+          alert('⚠️ ' + (data.error || 'Failed to remove dispatch.'));
+        }
+      } catch (err) {
+        alert('⚠️ Network error: ' + err.message);
+      }
+    }
+
+    async function clearAllDispatches() {
+      if (!confirm('⚠️ Are you sure you want to clean/remove ALL test requests from the system? This action cannot be undone.')) return;
+      try {
+        const res = await fetch(`${window.CONFIG.API_URL}/api/dispatch/clear-all`, {
+          method: 'POST'
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          loadAllDispatches();
+        } else {
+          alert('⚠️ ' + (data.error || 'Failed to clear dispatches.'));
+        }
+      } catch (err) {
+        alert('⚠️ Network error: ' + err.message);
+      }
+    }
+
 
     function copyCurl() {
       const curl = `curl -X POST ${window.CONFIG.API_URL}/api/dispatch \\\n  -H "Content-Type: application/json" \\\n  -d '{"requesterPhone":"94771234567","vehicleType":"Tractor","date":"2026-09-10","location":"Faculty Field Zone B","notes":"Ploughing 2 acres"}'`;

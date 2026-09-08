@@ -389,21 +389,11 @@ router.post(['/whatsapp/test-message', '/whatsapp/test_message'], async (req, re
     return res.status(400).json({ success: false, error: 'Phone number and message text are required.' });
   }
 
-  if (!whatsappService.client || whatsappService.status !== 'READY') {
-    return res.status(400).json({ 
-      success: false, 
-      error: `WhatsApp is not connected yet (Current status: ${whatsappService.status}). Please scan the QR code on the admin page with WhatsApp on your phone (Linked Devices) first!` 
-    });
-  }
-
-  try {
-    const formatted = whatsappService.formatWhatsAppNumber(phone);
-    const sent = await whatsappService.client.sendMessage(formatted, message);
-    whatsappService.log(`Direct test message sent to ${formatted}`, 'success');
-    res.json({ success: true, message: 'Message sent successfully via WhatsApp!', messageId: sent.id._serialized });
-  } catch (err) {
-    console.error('Test message send error:', err);
-    res.status(500).json({ success: false, error: err.message });
+  const result = await whatsappService.sendMessageDirect(phone, message);
+  if (result.success) {
+    res.json({ success: true, message: 'Message sent successfully via WhatsApp!', messageId: result.messageId });
+  } else {
+    res.status(400).json({ success: false, error: result.error || result.warning || 'Failed to deliver WhatsApp message' });
   }
 });
 

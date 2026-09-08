@@ -236,13 +236,70 @@ class WhatsAppService {
     return clean;
   }
 
-  async sendBookingConfirmation(requesterPhone, owner, dispatch) {
-    const formattedNumber = this.formatWhatsAppNumber(requesterPhone);
+  async sendMessageDirect(phone, message) {
+    const formattedNumber = this.formatWhatsAppNumber(phone);
     if (!formattedNumber) {
-      this.log(`Invalid phone number: ${requesterPhone}`, 'error');
-      return { success: false, error: 'Invalid phone number' };
+      this.log(`Invalid phone number: ${phone}`, 'error');
+      return { success: false, error: 'Invalid phone number format' };
     }
 
+    if (this.status !== 'READY' || !this.client) {
+      this.log(`WhatsApp not connected. Cannot send message to ${formattedNumber}.`, 'warn');
+      return {
+        success: false,
+        warning: 'WhatsApp client is not currently connected. Please link WhatsApp first.',
+        messageContent: message
+      };
+    }
+
+    try {
+      this.log(`Sending WhatsApp message to ${formattedNumber}...`);
+
+      const cleanDigits = formattedNumber.replace(/@c\.us$/, '');
+      const myNumber = (this.client.info && this.client.info.wid) ? this.client.info.wid.user : null;
+      let targetJid = formattedNumber;
+
+      if (myNumber && cleanDigits === myNumber) {
+        // Recipient is the bot account itself (Self-message / Note to self)
+        targetJid = this.client.info.wid._serialized;
+        this.log(`Recipient is the bot's own connected account (${targetJid}). Delivering as Self-Note...`, 'info');
+      } else {
+        // External recipient: Verify registration
+        try {
+          const numberId = await Promise.race([
+            this.client.getNumberId(cleanDigits),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout resolving number')), 6000))
+          ]);
+          if (numberId && numberId._serialized) {
+            targetJid = numberId._serialized;
+          } else if (numberId === null) {
+            this.log(`⚠️ Number ${cleanDigits} is not registered on WhatsApp!`, 'error');
+            return {
+              success: false,
+              error: `Phone number ${cleanDigits} is not registered on WhatsApp. Please check the number.`,
+              messageContent: message
+            };
+          }
+        } catch (resolveErr) {
+          // Fall back to targetJid
+        }
+      }
+
+      // Send with options { sendSeen: false } and a 35-second safety timeout
+      const sent = await Promise.race([
+        this.client.sendMessage(targetJid, message, { sendSeen: false }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('WhatsApp message delivery timed out after 35s')), 35000))
+      ]);
+
+      this.log(`WhatsApp message delivered successfully to ${targetJid}`, 'success');
+      return { success: true, messageId: sent && sent.id ? sent.id._serialized : 'sent', messageContent: message };
+    } catch (err) {
+      this.log(`Failed to send WhatsApp message to ${formattedNumber}: ${err.message}`, 'error');
+      return { success: false, error: err.message, messageContent: message };
+    }
+  }
+
+  async sendBookingConfirmation(requesterPhone, owner, dispatch) {
     const message = `🚜 *AGRICULTURAL VEHICLE DISPATCH CONFIRMED* 🚜\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `Hello! Your booking for *${dispatch.vehicle_type}* has been *APPROVED*.\n\n` +
@@ -260,47 +317,7 @@ class WhatsAppService {
       `The vehicle owner has been dispatched and will reach out to you.\n` +
       `_Agri-Vehicle Dispatch System_`;
 
-    if (this.status !== 'READY' || !this.client) {
-      this.log(`WhatsApp not connected. Message formatted & prepared for ${formattedNumber}.`, 'warn');
-      return {
-        success: false,
-        warning: 'WhatsApp client is not currently connected. Message not sent via WhatsApp.',
-        messageContent: message
-      };
-    }
-
-    try {
-      this.log(`Sending WhatsApp confirmation to ${formattedNumber}...`);
-
-      // Determine recipient JID
-      let targetJid = formattedNumber;
-      try {
-        const cleanDigits = formattedNumber.replace(/@c\.us$/, '');
-        const numberId = await Promise.race([
-          this.client.getNumberId(cleanDigits),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout resolving number')), 4000))
-        ]);
-        if (numberId && numberId._serialized) {
-          targetJid = numberId._serialized;
-        } else if (numberId === null) {
-          this.log(`Notice: ${formattedNumber} might not be registered on WhatsApp. Attempting direct send...`, 'warn');
-        }
-      } catch (checkErr) {
-        // Fall back to targetJid
-      }
-
-      // Send with a 15-second safety timeout so it never hangs indefinitely
-      const sent = await Promise.race([
-        this.client.sendMessage(targetJid, message),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('WhatsApp message delivery timed out after 15s')), 15000))
-      ]);
-
-      this.log(`WhatsApp message delivered successfully to ${targetJid}`, 'success');
-      return { success: true, messageId: sent && sent.id ? sent.id._serialized : 'sent', messageContent: message };
-    } catch (err) {
-      this.log(`Failed to send WhatsApp message to ${formattedNumber}: ${err.message}`, 'error');
-      return { success: false, error: err.message, messageContent: message };
-    }
+    return await this.sendMessageDirect(requesterPhone, message);
   }
 }
 

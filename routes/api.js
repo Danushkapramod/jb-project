@@ -372,14 +372,11 @@ router.post('/whatsapp/reconnect', (req, res) => {
 });
 
 // POST /api/whatsapp/disconnect - Force logout, purge local session files, and generate a new QR code
-router.post(['/whatsapp/disconnect', '/whatsapp/logout'], async (req, res) => {
-  try {
-    await whatsappService.disconnectAndClearSession();
-    res.json({ success: true, message: 'WhatsApp session disconnected and purged. Generating fresh QR code...' });
-  } catch (err) {
-    console.error('Disconnect error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
+router.post(['/whatsapp/disconnect', '/whatsapp/logout'], (req, res) => {
+  res.json({ success: true, message: 'WhatsApp session disconnect initiated. Purging stored credentials and restarting engine...' });
+  whatsappService.disconnectAndClearSession().catch((err) => {
+    console.error('Background disconnect error:', err);
+  });
 });
 
 // POST /api/whatsapp/test-message or test_message - Send a quick custom WhatsApp message to test connectivity

@@ -306,13 +306,33 @@
         badge.className = "bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-200 animate-pulse";
         badge.textContent = "AUTHENTICATED / LOGGING IN...";
         spinner.classList.remove('hidden');
+        spinner.querySelector('p').textContent = 'WhatsApp authenticated! Preparing session...';
         qrImg.classList.add('hidden');
         instructions.classList.add('hidden');
         connectedBanner.classList.add('hidden');
 
       } else if (data.status === 'INITIALIZING') {
-        badge.className = "bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-200";
+        badge.className = "bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-200 animate-pulse";
         spinner.classList.remove('hidden');
+        spinner.querySelector('p').textContent = 'Starting WhatsApp Web Chromium engine...';
+        qrImg.classList.add('hidden');
+        instructions.classList.add('hidden');
+        connectedBanner.classList.add('hidden');
+
+      } else if (data.status === 'DISCONNECTING' || data.status === 'DISCONNECTED') {
+        badge.className = "bg-rose-100 text-rose-800 text-xs font-bold px-2.5 py-1 rounded-full border border-rose-200 animate-pulse";
+        badge.textContent = data.status === 'DISCONNECTING' ? 'DISCONNECTING...' : 'DISCONNECTED (RESETTING)';
+        spinner.classList.remove('hidden');
+        spinner.querySelector('p').textContent = 'Purging session credentials & generating fresh QR code...';
+        qrImg.classList.add('hidden');
+        instructions.classList.add('hidden');
+        connectedBanner.classList.add('hidden');
+
+      } else if (data.status === 'ERROR') {
+        badge.className = "bg-red-100 text-red-800 text-xs font-bold px-2.5 py-1 rounded-full border border-red-200";
+        badge.textContent = 'SESSION ERROR';
+        spinner.classList.remove('hidden');
+        spinner.querySelector('p').innerHTML = '<span class="text-rose-600 font-bold">Session reset needed.</span> Click "Disconnect WhatsApp" below to purge and restart.';
         qrImg.classList.add('hidden');
         instructions.classList.add('hidden');
         connectedBanner.classList.add('hidden');
@@ -348,18 +368,25 @@
       badge.textContent = 'DISCONNECTING...';
       badge.className = 'bg-rose-100 text-rose-800 text-xs font-bold px-2.5 py-1 rounded-full border border-rose-200 animate-pulse';
 
+      const spinner = document.getElementById('qrLoadingSpinner');
+      spinner.classList.remove('hidden');
+      spinner.querySelector('p').textContent = 'Disconnecting WhatsApp and purging stored credentials...';
+      document.getElementById('qrImage').classList.add('hidden');
+      document.getElementById('qrInstructions').classList.add('hidden');
+      document.getElementById('connectedBanner').classList.add('hidden');
+
       appendLog({ timestamp: new Date().toLocaleTimeString(), message: 'Triggered session purge & disconnect...' });
 
       try {
         const res = await fetch(`${window.CONFIG.API_URL}/api/whatsapp/disconnect`, { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
-          alert('WhatsApp session disconnected! Generating fresh QR code...');
+          appendLog({ timestamp: new Date().toLocaleTimeString(), message: 'Disconnect command acknowledged. Fresh QR code incoming...' });
         } else {
           alert('Error: ' + (data.error || 'Failed to disconnect session'));
         }
       } catch (err) {
-        alert('Network error while disconnecting WhatsApp.');
+        appendLog({ timestamp: new Date().toLocaleTimeString(), message: 'Network warning during disconnect call, syncing status...' });
       }
     }
 

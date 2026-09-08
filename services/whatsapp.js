@@ -2,6 +2,16 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
+
+function killOrphanedWwebjsChrome() {
+  if (process.platform !== 'win32') return;
+  try {
+    const psScript = 'Get-CimInstance Win32_Process -Filter "Name = \'chrome.exe\'" | Where-Object { $_.CommandLine -like "*wwebjs_auth*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }';
+    const b64 = Buffer.from(psScript, 'utf16le').toString('base64');
+    execSync('powershell -NoProfile -NonInteractive -EncodedCommand ' + b64, { stdio: 'ignore' });
+  } catch (err) {}
+}
 
 function getChromiumExecutablePath() {
   if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
@@ -22,12 +32,13 @@ function getChromiumExecutablePath() {
 class WhatsAppService {
   constructor() {
     this.client = null;
-    this.status = 'NOT_INITIALIZED'; // NOT_INITIALIZED, INITIALIZING, WAITING_FOR_QR_SCAN, AUTHENTICATED, READY, DISCONNECTED
+    this.status = 'NOT_INITIALIZED'; // NOT_INITIALIZED, INITIALIZING, WAITING_FOR_QR_SCAN, AUTHENTICATED, READY, DISCONNECTING, DISCONNECTED, ERROR
     this.qrCodeDataUrl = null;
     this.qrRaw = null;
     this.clientInfo = null;
     this.io = null;
     this.recentLogs = [];
+    this.isDisconnecting = false;
   }
 
   setSocket(io) {
@@ -48,9 +59,37 @@ class WhatsAppService {
   async initialize() {
     if (this.client) {
       try {
+        this.client.removeAllListeners();
+        if (this.client.pupBrowser) {
+          const proc = this.client.pupBrowser.process();
+          if (proc && proc.pid) {
+            try {
+              if (process.platform === 'win32') {
+                execSync(`taskkill /PID ${proc.pid} /T /F`, { stdio: 'ignore' });
+              } else {
+                proc.kill('SIGKILL');
+              }
+            } catch (kErr) {}
+          }
+        }
         await this.client.destroy();
       } catch (e) {}
       this.client = null;
+    }
+
+    // Always kill any orphaned background chrome processes tied to wwebjs_auth
+    killOrphanedWwebjsChrome();
+    await new Promise((r) => setTimeout(r, 600));
+
+    // Clear any stale Chromium lockfiles inside session directory if they exist
+    const sessionDir = path.resolve(__dirname, '../.wwebjs_auth/session');
+    for (const lockfile of ['SingletonLock', 'lockfile', 'SingletonSocket', 'SingletonCookie']) {
+      try {
+        const lp = path.join(sessionDir, lockfile);
+        if (fs.existsSync(lp)) {
+          fs.unlinkSync(lp);
+        }
+      } catch (e) {}
     }
 
     this.status = 'INITIALIZING';
@@ -152,13 +191,18 @@ class WhatsAppService {
       this.clientInfo = null;
       this.qrCodeDataUrl = null;
       this.qrRaw = null;
-      this.log(`WhatsApp disconnected: ${reason}. Clearing local session files...`, 'warn');
+      this.log(`WhatsApp disconnected: ${reason}. Session ended on phone or server.`, 'warn');
       if (this.io) {
         this.io.emit('whatsapp_status', this.getStatus());
       }
-      setTimeout(() => {
-        this.disconnectAndClearSession().catch(() => {});
-      }, 1500);
+      // If we are not already in the middle of explicit disconnect, trigger clean session purge & fresh QR
+      if (!this.isDisconnecting) {
+        setTimeout(() => {
+          this.disconnectAndClearSession().catch((err) => {
+            this.log(`Error resetting session after disconnect: ${err.message}`, 'error');
+          });
+        }, 1200);
+      }
     });
 
     this.client.initialize().catch((err) => {
@@ -171,39 +215,74 @@ class WhatsAppService {
   }
 
   async disconnectAndClearSession() {
-    this.log('Disconnecting WhatsApp and purging stored session data...', 'warn');
-    if (this.client) {
-      try {
-        await this.client.logout();
-      } catch (e) {
-        try {
-          await this.client.destroy();
-        } catch (e2) {}
-      }
-      this.client = null;
+    if (this.isDisconnecting) {
+      this.log('Disconnect already in progress, skipping duplicate call...', 'warn');
+      return;
     }
-
-    this.status = 'DISCONNECTED';
+    this.isDisconnecting = true;
+    this.status = 'DISCONNECTING';
     this.clientInfo = null;
     this.qrCodeDataUrl = null;
     this.qrRaw = null;
-
-    // Delete .wwebjs_auth directory safely so stale tokens are erased
-    const authPath = path.resolve(__dirname, '../.wwebjs_auth');
-    try {
-      if (fs.existsSync(authPath)) {
-        fs.rmSync(authPath, { recursive: true, force: true });
-        this.log('Purged session authentication directory successfully.');
-      }
-    } catch (fsErr) {
-      console.error('Error removing .wwebjs_auth directory:', fsErr.message);
-    }
-
+    this.log('Disconnecting WhatsApp and purging stored session data...', 'warn');
     if (this.io) {
       this.io.emit('whatsapp_status', this.getStatus());
     }
 
-    // Immediately start fresh client to generate a new QR code
+    // 1. Remove all listeners so disconnected event doesn't re-trigger
+    if (this.client) {
+      try {
+        this.client.removeAllListeners();
+      } catch (e) {}
+
+      // Try killing puppeteer browser process explicitly
+      try {
+        if (this.client.pupBrowser) {
+          const proc = this.client.pupBrowser.process();
+          if (proc && proc.pid) {
+            try {
+              if (process.platform === 'win32') {
+                execSync(`taskkill /PID ${proc.pid} /T /F`, { stdio: 'ignore' });
+              } else {
+                proc.kill('SIGKILL');
+              }
+            } catch (kErr) {}
+          }
+        }
+      } catch (pErr) {}
+
+      try {
+        await this.client.destroy();
+      } catch (e) {}
+      this.client = null;
+    }
+
+    // 2. Terminate any lingering background chrome processes tied to wwebjs_auth
+    killOrphanedWwebjsChrome();
+
+    // 3. Allow Windows to release all file handles
+    await new Promise((r) => setTimeout(r, 1500));
+
+    // 4. Purge the .wwebjs_auth directory safely
+    const authPath = path.resolve(__dirname, '../.wwebjs_auth');
+    try {
+      if (fs.existsSync(authPath)) {
+        fs.rmSync(authPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 400 });
+        this.log('Purged session authentication directory successfully.');
+      }
+    } catch (fsErr) {
+      this.log(`Session directory cleanup warning: ${fsErr.message}`, 'warn');
+    }
+
+    this.status = 'DISCONNECTED';
+    if (this.io) {
+      this.io.emit('whatsapp_status', this.getStatus());
+    }
+
+    await new Promise((r) => setTimeout(r, 800));
+    this.isDisconnecting = false;
+
+    // 5. Start fresh WhatsApp client to generate new QR code
     this.log('Starting fresh WhatsApp client to generate new QR code...');
     await this.initialize();
   }

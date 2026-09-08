@@ -150,10 +150,15 @@ class WhatsAppService {
     this.client.on('disconnected', (reason) => {
       this.status = 'DISCONNECTED';
       this.clientInfo = null;
-      this.log(`WhatsApp disconnected: ${reason}`, 'warn');
+      this.qrCodeDataUrl = null;
+      this.qrRaw = null;
+      this.log(`WhatsApp disconnected: ${reason}. Clearing local session files...`, 'warn');
       if (this.io) {
         this.io.emit('whatsapp_status', this.getStatus());
       }
+      setTimeout(() => {
+        this.disconnectAndClearSession().catch(() => {});
+      }, 1500);
     });
 
     this.client.initialize().catch((err) => {
@@ -163,6 +168,44 @@ class WhatsAppService {
         this.io.emit('whatsapp_status', this.getStatus());
       }
     });
+  }
+
+  async disconnectAndClearSession() {
+    this.log('Disconnecting WhatsApp and purging stored session data...', 'warn');
+    if (this.client) {
+      try {
+        await this.client.logout();
+      } catch (e) {
+        try {
+          await this.client.destroy();
+        } catch (e2) {}
+      }
+      this.client = null;
+    }
+
+    this.status = 'DISCONNECTED';
+    this.clientInfo = null;
+    this.qrCodeDataUrl = null;
+    this.qrRaw = null;
+
+    // Delete .wwebjs_auth directory safely so stale tokens are erased
+    const authPath = path.resolve(__dirname, '../.wwebjs_auth');
+    try {
+      if (fs.existsSync(authPath)) {
+        fs.rmSync(authPath, { recursive: true, force: true });
+        this.log('Purged session authentication directory successfully.');
+      }
+    } catch (fsErr) {
+      console.error('Error removing .wwebjs_auth directory:', fsErr.message);
+    }
+
+    if (this.io) {
+      this.io.emit('whatsapp_status', this.getStatus());
+    }
+
+    // Immediately start fresh client to generate a new QR code
+    this.log('Starting fresh WhatsApp client to generate new QR code...');
+    await this.initialize();
   }
 
   getStatus() {

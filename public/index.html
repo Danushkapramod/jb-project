@@ -24,30 +24,12 @@
           <span class="text-xs bg-emerald-700 text-emerald-200 px-2 py-0.5 rounded-full ml-1 font-medium">University Farm</span>
         </div>
       </div>
-      <nav class="flex items-center space-x-2 sm:space-x-3 text-sm font-medium">
-        <button onclick="window.setBackendUrl()" title="Configure Render Backend API URL" class="text-xs bg-emerald-900/80 hover:bg-emerald-700 text-emerald-200 px-2.5 py-1.5 rounded-lg border border-emerald-600 flex items-center space-x-1 transition">
-          <i class="fa-solid fa-server text-[10px]"></i>
-          <span class="hidden md:inline">API:</span>
-          <span id="backendStatusLabel" class="max-w-[120px] truncate text-[11px]">Backend</span>
-        </button>
-        <a href="/login.html" class="hover:text-emerald-200 transition px-2.5 py-1.5 text-xs sm:text-sm">Owner Login</a>
-        <a href="/register.html" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg shadow transition font-semibold text-xs sm:text-sm">Register</a>
-        <a href="/admin.html" class="border border-emerald-500 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg transition text-xs sm:text-sm">
-          <i class="fa-brands fa-whatsapp mr-1 text-green-400"></i> WhatsApp
-        </a>
+      <nav class="flex items-center space-x-3 text-sm font-medium">
+        <a href="/login.html" class="hover:text-emerald-200 transition px-3 py-1.5 text-sm">Owner Login</a>
+        <a href="/register.html" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg shadow transition font-semibold text-sm">Register Vehicle</a>
       </nav>
     </div>
   </header>
-  <script>
-    if (window.CONFIG && window.CONFIG.API_URL) {
-      try {
-        const u = new URL(window.CONFIG.API_URL);
-        document.getElementById('backendStatusLabel').textContent = u.hostname;
-      } catch(e) {
-        document.getElementById('backendStatusLabel').textContent = window.CONFIG.API_URL;
-      }
-    }
-  </script>
 
   <!-- Hero Section -->
   <main class="flex-grow">
@@ -67,13 +49,9 @@
             <i class="fa-solid fa-key"></i>
             <span>Register Your Vehicle</span>
           </a>
-          <a href="/dashboard.html" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition flex items-center space-x-2">
+          <a href="/login.html" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition flex items-center space-x-2">
             <i class="fa-solid fa-gauge-high"></i>
-            <span>Go to Driver Dashboard</span>
-          </a>
-          <a href="/admin.html" class="bg-white/10 hover:bg-white/20 text-white font-semibold px-6 py-3 rounded-xl border border-white/20 transition flex items-center space-x-2">
-            <i class="fa-brands fa-whatsapp text-green-400 text-lg"></i>
-            <span>WhatsApp Station & API Tester</span>
+            <span>Driver Portal Login</span>
           </a>
         </div>
       </div>
@@ -160,7 +138,6 @@
     <div class="max-w-7xl mx-auto px-4 text-center flex flex-col sm:flex-row justify-between items-center gap-4">
       <div>University Agricultural Vehicle Dispatch Platform &copy; 2026</div>
       <div class="flex space-x-6 text-xs">
-        <a href="/admin.html" class="hover:text-emerald-400">WhatsApp QR Code & Tester</a>
         <a href="/login.html" class="hover:text-emerald-400">Driver Portal</a>
         <a href="/register.html" class="hover:text-emerald-400">Register</a>
       </div>

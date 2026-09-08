@@ -1,0 +1,372 @@
+const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { dbAsync } = require('../db');
+const whatsappService = require('../services/whatsapp');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'agri_vehicle_super_secret_jwt_key_2026';
+
+// 5 Dummy Vehicle Types defined by the project requirement
+const ALLOWED_VEHICLE_TYPES = [
+  'Tractor',
+  'Harvester',
+  'Lorry',
+  'Combine Harvester',
+  'Water Bowser'
+];
+
+// Middleware to authenticate JWT token
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access denied. No token provided.' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token.' });
+    }
+    req.user = user;
+    next();
+  });
+}
+
+// -------------------------------------------------------------
+// AUTHENTICATION ENDPOINTS
+// -------------------------------------------------------------
+
+// POST /api/auth/register - Register a new vehicle owner
+router.post('/auth/register', async (req, res) => {
+  try {
+    const { name, email, password, phone, vehicleRegNo, vehicleType, location } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !password || !phone || !vehicleRegNo || !vehicleType || !location) {
+      return res.status(400).json({ error: 'All fields are required.' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({ error: 'Invalid email address format.' });
+    }
+
+    // Validate vehicle type
+    if (!ALLOWED_VEHICLE_TYPES.includes(vehicleType)) {
+      return res.status(400).json({
+        error: `Invalid vehicle type. Allowed types: ${ALLOWED_VEHICLE_TYPES.join(', ')}`
+      });
+    }
+
+    // Check duplicate email
+    const existingUser = await dbAsync.get('SELECT id FROM users WHERE email = ?', [email.trim().toLowerCase()]);
+    if (existingUser) {
+      return res.status(400).json({ error: 'An owner with this email is already registered.' });
+    }
+
+    // Check password length
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+    }
+
+    // Hash password
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync(password, salt);
+
+    // Insert new user
+    const result = await dbAsync.run(
+      `INSERT INTO users (name, email, password_hash, phone, vehicle_reg_no, vehicle_type, location)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        name.trim(),
+        email.trim().toLowerCase(),
+        passwordHash,
+        phone.trim(),
+        vehicleRegNo.trim(),
+        vehicleType,
+        location.trim()
+      ]
+    );
+
+    const newUser = {
+      id: result.lastID,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone.trim(),
+      vehicle_reg_no: vehicleRegNo.trim(),
+      vehicle_type: vehicleType,
+      location: location.trim()
+    };
+
+    const token = jwt.sign(newUser, JWT_SECRET, { expiresIn: '7d' });
+
+    res.status(201).json({
+      message: 'Vehicle owner registered successfully!',
+      token,
+      user: newUser
+    });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Internal server error during registration.' });
+  }
+});
+
+// POST /api/auth/login - Log in an existing vehicle owner
+router.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    const user = await dbAsync.get('SELECT * FROM users WHERE email = ?', [email.trim().toLowerCase()]);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    const isMatch = bcrypt.compareSync(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      vehicle_reg_no: user.vehicle_reg_no,
+      vehicle_type: user.vehicle_type,
+      location: user.location
+    };
+
+    const token = jwt.sign(safeUser, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      message: 'Login successful!',
+      token,
+      user: safeUser
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Internal server error during login.' });
+  }
+});
+
+// GET /api/auth/me - Get current logged-in owner profile
+router.get('/auth/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await dbAsync.get(
+      'SELECT id, name, email, phone, vehicle_reg_no, vehicle_type, location, created_at FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch user profile.' });
+  }
+});
+
+// -------------------------------------------------------------
+// DISPATCH & VEHICLE BOOKING ENDPOINTS
+// -------------------------------------------------------------
+
+// POST /api/dispatch - Incoming external API call for vehicle request
+// Parameters: requesterPhone, vehicleType, date, location, notes
+router.post('/dispatch', async (req, res) => {
+  try {
+    const { requesterPhone, vehicleType, date, location, notes } = req.body;
+
+    if (!requesterPhone || !vehicleType || !date || !location) {
+      return res.status(400).json({
+        error: 'Missing required parameters: requesterPhone, vehicleType, date, and location are required.'
+      });
+    }
+
+    if (!ALLOWED_VEHICLE_TYPES.includes(vehicleType)) {
+      return res.status(400).json({
+        error: `Invalid vehicleType. Must be one of: ${ALLOWED_VEHICLE_TYPES.join(', ')}`
+      });
+    }
+
+    const dispatchId = `REQ-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    await dbAsync.run(
+      `INSERT INTO dispatches (id, requester_phone, vehicle_type, date, location, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'PENDING')`,
+      [dispatchId, requesterPhone.trim(), vehicleType, date, location.trim(), (notes || '').trim()]
+    );
+
+    const dispatchPayload = {
+      id: dispatchId,
+      requesterPhone: requesterPhone.trim(),
+      vehicleType,
+      date,
+      location: location.trim(),
+      notes: (notes || '').trim(),
+      status: 'PENDING',
+      createdAt: new Date().toISOString()
+    };
+
+    // Broadcast to connected vehicle owners matching this vehicle type via Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('new_job_request', dispatchPayload);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Job request broadcasted to all registered ${vehicleType} owners!`,
+      dispatch: dispatchPayload
+    });
+  } catch (err) {
+    console.error('Dispatch creation error:', err);
+    res.status(500).json({ error: 'Failed to initiate dispatch request.' });
+  }
+});
+
+// POST /api/dispatch/:id/approve - Approve a job (First-Come First-Served Lock)
+router.post('/dispatch/:id/approve', authenticateToken, async (req, res) => {
+  const dispatchId = req.params.id;
+  const ownerId = req.user.id;
+
+  try {
+    // 1. Check current status in DB
+    const dispatch = await dbAsync.get('SELECT * FROM dispatches WHERE id = ?', [dispatchId]);
+    if (!dispatch) {
+      return res.status(404).json({ success: false, error: 'Dispatch request not found.' });
+    }
+
+    // 2. Lock check: If already approved or not pending
+    if (dispatch.status !== 'PENDING') {
+      return res.status(409).json({
+        success: false,
+        error: 'Sorry! This request has already been claimed by another vehicle owner.'
+      });
+    }
+
+    // 3. Atomically update status to APPROVED
+    const updateResult = await dbAsync.run(
+      `UPDATE dispatches 
+       SET status = 'APPROVED', approved_by_user_id = ?, approved_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND status = 'PENDING'`,
+      [ownerId, dispatchId]
+    );
+
+    if (updateResult.changes === 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'Race condition: Another owner accepted this job just milliseconds before you!'
+      });
+    }
+
+    // 4. Retrieve owner profile details
+    const owner = await dbAsync.get(
+      'SELECT id, name, phone, vehicle_reg_no, vehicle_type, location FROM users WHERE id = ?',
+      [ownerId]
+    );
+
+    // 5. Emit socket event to all clients so other owners' popups automatically close/lock
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('job_locked', {
+        dispatchId,
+        approvedBy: owner.name,
+        vehicleType: dispatch.vehicle_type
+      });
+    }
+
+    // 6. Send organized WhatsApp confirmation message to the requester
+    const whatsappResult = await whatsappService.sendBookingConfirmation(
+      dispatch.requester_phone,
+      owner,
+      dispatch
+    );
+
+    res.json({
+      success: true,
+      message: 'Job request approved! Requester has been notified via WhatsApp.',
+      dispatchId,
+      owner,
+      whatsappResult
+    });
+  } catch (err) {
+    console.error('Approval error:', err);
+    res.status(500).json({ success: false, error: 'Failed to process approval.' });
+  }
+});
+
+// POST /api/dispatch/:id/deny - Dismiss/deny the pop-up locally
+router.post('/dispatch/:id/deny', authenticateToken, async (req, res) => {
+  res.json({ success: true, message: 'Request denied/dismissed on this device.' });
+});
+
+// GET /api/dispatch/my-jobs - Get list of jobs accepted by the logged-in owner
+router.get('/dispatch/my-jobs', authenticateToken, async (req, res) => {
+  try {
+    const jobs = await dbAsync.all(
+      `SELECT * FROM dispatches WHERE approved_by_user_id = ? ORDER BY approved_at DESC`,
+      [req.user.id]
+    );
+    res.json({ jobs });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch your jobs history.' });
+  }
+});
+
+// GET /api/dispatch/all - Get all dispatches (for Admin monitoring)
+router.get('/dispatch/all', async (req, res) => {
+  try {
+    const dispatches = await dbAsync.all(
+      `SELECT d.*, u.name as approved_owner_name, u.phone as approved_owner_phone, u.vehicle_reg_no
+       FROM dispatches d
+       LEFT JOIN users u ON d.approved_by_user_id = u.id
+       ORDER BY d.created_at DESC LIMIT 50`
+    );
+    res.json({ dispatches });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch dispatches.' });
+  }
+});
+
+// -------------------------------------------------------------
+// WHATSAPP WEB STATUS & CONTROL ENDPOINTS
+// -------------------------------------------------------------
+
+// GET /api/whatsapp/status - Check WhatsApp connection status & QR code
+router.get('/whatsapp/status', (req, res) => {
+  res.json(whatsappService.getStatus());
+});
+
+// POST /api/whatsapp/reconnect - Trigger WhatsApp reconnect
+router.post('/whatsapp/reconnect', (req, res) => {
+  whatsappService.initialize();
+  res.json({ message: 'WhatsApp re-initialization triggered.' });
+});
+
+// POST /api/whatsapp/test-message - Send a quick custom WhatsApp message to test connectivity
+router.post('/whatsapp/test-message', async (req, res) => {
+  const { phone, message } = req.body;
+  if (!phone || !message) {
+    return res.status(400).json({ error: 'Phone number and message text are required.' });
+  }
+
+  const formatted = whatsappService.formatWhatsAppNumber(phone);
+  if (!whatsappService.client || whatsappService.status !== 'READY') {
+    return res.status(503).json({ error: 'WhatsApp client is not connected or not ready.' });
+  }
+
+  try {
+    const sent = await whatsappService.client.sendMessage(formatted, message);
+    res.json({ success: true, messageId: sent.id._serialized });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+module.exports = router;

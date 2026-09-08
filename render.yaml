@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: agri-dispatch-backend
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/whatsapp/status
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true

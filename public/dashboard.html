@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver Duty Dashboard | AgriDispatch</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/config.js"></script>
+  <script src="/sound.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-ring {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+    @keyframes bounce-subtle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .bounce-subtle {
+      animation: bounce-subtle 1s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Top Navigation -->
+  <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="flex items-center space-x-2 text-white hover:text-emerald-400 transition">
+          <span class="text-2xl">🚜</span>
+          <span class="font-bold text-lg tracking-tight">AgriDispatch</span>
+        </a>
+        <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">Driver Console</span>
+      </div>
+
+      <div class="flex items-center space-x-3 sm:space-x-4">
+        <!-- API URL Switcher Button -->
+        <button onclick="window.setBackendUrl()" title="Configure Render Backend API URL" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 flex items-center space-x-1 transition">
+          <i class="fa-solid fa-server text-[10px] text-emerald-400"></i>
+          <span class="hidden sm:inline">API</span>
+        </button>
+
+        <!-- Duty Status Switch -->
+        <button id="dutyToggleBtn" onclick="toggleDuty()"
+          class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-bold transition shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white">
+          <span id="dutyDot" class="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></span>
+          <span id="dutyText">ONLINE</span>
+        </button>
+
+        <!-- Logout -->
+        <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-red-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg border border-slate-700 transition">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i> Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+    <!-- Driver Info Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div class="flex items-center space-x-4">
+          <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-2xl font-bold border border-emerald-200 shadow-inner">
+            <span id="vehicleEmoji">🚜</span>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h1 id="driverName" class="text-xl font-bold text-slate-900">Loading...</h1>
+              <span id="vehicleTypeBadge" class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200">...</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+              <span><i class="fa-solid fa-id-card text-slate-400 mr-1"></i> Reg: <strong id="vehicleRegNo" class="text-slate-700">...</strong></span>
+              <span><i class="fa-brands fa-whatsapp text-emerald-600 mr-1"></i> Phone: <strong id="driverPhone" class="text-slate-700">...</strong></span>
+              <span><i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> Base: <strong id="driverLocation" class="text-slate-700">...</strong></span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3 bg-slate-50 p-3 rounded-xl border border-slate-200 w-full sm:w-auto">
+          <div class="text-right">
+            <div class="text-xs text-slate-500">Live Dispatch Radar</div>
+            <div id="radarStatusText" class="text-xs font-bold text-emerald-600 flex items-center justify-end space-x-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span>Scanning for jobs</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Listening Banner -->
+    <div id="dutyBanner" class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-md mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-4">
+        <div class="p-3 bg-white/20 rounded-xl">
+          <i class="fa-solid fa-satellite-dish text-2xl bounce-subtle"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold">You are ON DUTY and ready for dispatches</h2>
+          <p class="text-xs text-emerald-100">Keep this tab open. When a farm field requests your vehicle type, your phone/computer will ring with a pop-up alert.</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button onclick="testAudio()" class="text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition font-medium border border-white/30">
+          <i class="fa-solid fa-volume-high mr-1"></i> Test Sound
+        </button>
+      </div>
+    </div>
+
+    <!-- Accepted Jobs History -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+        <div>
+          <h3 class="text-base font-bold text-slate-800">My Accepted Bookings</h3>
+          <p class="text-xs text-slate-500">History of agricultural dispatch requests you have approved</p>
+        </div>
+        <button onclick="loadMyJobs()" class="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center space-x-1">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span>Refresh</span>
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-xs uppercase text-slate-500 border-b border-slate-200">
+            <tr>
+              <th class="px-6 py-3">Request ID</th>
+              <th class="px-6 py-3">Requester Phone</th>
+              <th class="px-6 py-3">Work Date</th>
+              <th class="px-6 py-3">Destination Field</th>
+              <th class="px-6 py-3">Notes</th>
+              <th class="px-6 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody id="jobsTableBody" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="6" class="px-6 py-8 text-center text-slate-400 text-xs">
+                <i class="fa-solid fa-spinner fa-spin text-lg mb-2 block"></i>
+                Loading your bookings...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- PICKME-STYLE POP-UP INCOMING JOB MODAL OVERLAY -->
+  <!-- ======================================================== -->
+  <div id="jobModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full border-4 border-amber-400 overflow-hidden transform transition-all animate-in fade-in duration-200">
+      
+      <!-- Top Alert Bar -->
+      <div class="bg-amber-500 text-slate-900 p-4 text-center relative">
+        <div class="flex items-center justify-center space-x-2">
+          <span class="text-2xl animate-bounce">🚨</span>
+          <span class="font-extrabold uppercase tracking-wider text-base">NEW VEHICLE REQUEST!</span>
+        </div>
+        <p class="text-xs font-semibold text-amber-950 mt-0.5">First vehicle owner to approve claims this booking</p>
+
+        <!-- Countdown Bar -->
+        <div class="w-full bg-amber-600 h-1.5 rounded-full mt-3 overflow-hidden">
+          <div id="countdownBar" class="bg-slate-900 h-full w-full transition-all duration-1000 ease-linear"></div>
+        </div>
+      </div>
+
+      <!-- Request Body Content -->
+      <div class="p-6 space-y-4">
+
+        <!-- Locked Banner (shown when another owner grabs it) -->
+        <div id="lockedNotice" class="hidden p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-center space-y-1">
+          <i class="fa-solid fa-lock text-rose-500 text-2xl"></i>
+          <div class="font-bold text-sm">Request Already Claimed!</div>
+          <div id="lockedByText" class="text-xs text-rose-700">Another owner accepted this request before you.</div>
+        </div>
+
+        <!-- Success Banner -->
+        <div id="approvedNotice" class="hidden p-4 rounded-2xl bg-green-50 border border-green-200 text-green-800 text-center space-y-1">
+          <i class="fa-solid fa-circle-check text-green-600 text-2xl"></i>
+          <div class="font-bold text-sm">You Approved This Booking!</div>
+          <div class="text-xs text-green-700">WhatsApp notification has been dispatched to the farmer.</div>
+        </div>
+
+        <!-- Request Details Card -->
+        <div id="jobDetailsCard" class="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
+          <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+            <span class="text-xs text-slate-500 font-medium">Vehicle Required</span>
+            <span id="modalVehicleType" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-300">Tractor</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <span class="text-slate-400 block font-medium">Scheduled Date</span>
+              <span id="modalDate" class="font-bold text-slate-800 text-sm mt-0.5 block">2026-09-10</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block font-medium">Farmer WhatsApp</span>
+              <span id="modalPhone" class="font-bold text-emerald-700 text-sm mt-0.5 block">0771234567</span>
+            </div>
+          </div>
+
+          <div>
+            <span class="text-xs text-slate-400 block font-medium">Field Location / Destination</span>
+            <span id="modalLocation" class="font-semibold text-slate-800 text-sm mt-0.5 block">Faculty Paddy Field Zone B</span>
+          </div>
+
+          <div>
+            <span class="text-xs text-slate-400 block font-medium">Work Notes</span>
+            <p id="modalNotes" class="text-xs text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200 mt-1 italic">
+              Need 2 acres ploughed before evening.
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div id="modalActionButtons" class="grid grid-cols-2 gap-3 pt-2">
+          <button id="denyBtn" onclick="denyJob()"
+            class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-2xl border border-slate-300 transition text-sm flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-xmark text-rose-500"></i>
+            <span>Deny</span>
+          </button>
+
+          <button id="approveBtn" onclick="approveJob()"
+            class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-lg hover:shadow-emerald-500/30 transition text-sm flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-check text-lg"></i>
+            <span>APPROVE</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Authentication Check
+    const token = localStorage.getItem('agri_token');
+    const userStr = localStorage.getItem('agri_user');
+
+    if (!token || !userStr) {
+      window.location.href = '/login.html';
+    }
+
+    const currentUser = JSON.parse(userStr);
+    let isOnline = true;
+    let currentJob = null;
+    let countdownInterval = null;
+    let countdownSeconds = 60;
+
+    // Populate user profile info
+    document.getElementById('driverName').textContent = currentUser.name;
+    document.getElementById('vehicleTypeBadge').textContent = currentUser.vehicle_type;
+    document.getElementById('vehicleRegNo').textContent = currentUser.vehicle_reg_no;
+    document.getElementById('driverPhone').textContent = currentUser.phone;
+    document.getElementById('driverLocation').textContent = currentUser.location;
+
+    // Set emoji based on vehicle type
+    const emojis = {
+      'Tractor': '🚜',
+      'Harvester': '🌾',
+      'Lorry': '🚛',
+      'Combine Harvester': '🚜🌾',
+      'Water Bowser': '💧'
+    };
+    document.getElementById('vehicleEmoji').textContent = emojis[currentUser.vehicle_type] || '🚜';
+
+    // Socket.io Connection
+    const socket = io(window.CONFIG.API_URL);
+
+    socket.on('connect', () => {
+      console.log('Connected to dispatch server as', socket.id);
+      socket.emit('register_driver', {
+        name: currentUser.name,
+        vehicleType: currentUser.vehicle_type
+      });
+    });
+
+    // Listen for incoming job requests
+    socket.on('new_job_request', (dispatch) => {
+      console.log('Incoming dispatch alert:', dispatch);
+
+      // Only trigger if driver is online AND vehicle type matches
+      if (!isOnline) return;
+      if (dispatch.vehicleType !== currentUser.vehicle_type) return;
+
+      // Show PickMe style pop-up!
+      showJobModal(dispatch);
+    });
+
+    // Listen for locking event (when another driver accepts first)
+    socket.on('job_locked', (data) => {
+      console.log('Job locked event:', data);
+      if (currentJob && currentJob.id === data.dispatchId) {
+        handleJobLockedByOther(data.approvedBy);
+      }
+    });
+
+    // PickMe Style Pop-up functions
+    function showJobModal(dispatch) {
+      currentJob = dispatch;
+      countdownSeconds = 60;
+
+      document.getElementById('modalVehicleType').textContent = dispatch.vehicleType;
+      document.getElementById('modalDate').textContent = dispatch.date;
+      document.getElementById('modalPhone').textContent = dispatch.requesterPhone;
+      document.getElementById('modalLocation').textContent = dispatch.location;
+      document.getElementById('modalNotes').textContent = dispatch.notes || 'No extra notes specified.';
+
+      // Reset modal views
+      document.getElementById('lockedNotice').classList.add('hidden');
+      document.getElementById('approvedNotice').classList.add('hidden');
+      document.getElementById('jobDetailsCard').classList.remove('hidden');
+      document.getElementById('modalActionButtons').classList.remove('hidden');
+
+      const approveBtn = document.getElementById('approveBtn');
+      approveBtn.disabled = false;
+      approveBtn.innerHTML = `<i class="fa-solid fa-check text-lg"></i><span>APPROVE</span>`;
+
+      // Show modal
+      document.getElementById('jobModal').classList.remove('hidden');
+
+      // Play audio chime continuously
+      window.soundAlert.startAlarm();
+
+      // Start countdown
+      const countdownBar = document.getElementById('countdownBar');
+      countdownBar.style.width = '100%';
+
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        countdownSeconds--;
+        const percentage = (countdownSeconds / 60) * 100;
+        countdownBar.style.width = percentage + '%';
+
+        if (countdownSeconds <= 0) {
+          denyJob();
+        }
+      }, 1000);
+    }
+
+    function closeJobModal() {
+      window.soundAlert.stopAlarm();
+      if (countdownInterval) clearInterval(countdownInterval);
+      document.getElementById('jobModal').classList.add('hidden');
+      currentJob = null;
+    }
+
+    async function approveJob() {
+      if (!currentJob) return;
+
+      window.soundAlert.stopAlarm();
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      const approveBtn = document.getElementById('approveBtn');
+      approveBtn.disabled = true;
+      approveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-lg"></i><span>Approving...</span>`;
+
+      try {
+        const response = await fetch(`${window.CONFIG.API_URL}/api/dispatch/${currentJob.id}/approve`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.status === 409) {
+          // Already claimed by another driver!
+          handleJobLockedByOther('another owner');
+          return;
+        }
+
+        if (!response.ok) {
+          alert(data.error || 'Failed to approve job');
+          closeJobModal();
+          return;
+        }
+
+        // Successfully approved
+        document.getElementById('modalActionButtons').classList.add('hidden');
+        document.getElementById('approvedNotice').classList.remove('hidden');
+
+        // Refresh accepted jobs table
+        loadMyJobs();
+
+        setTimeout(() => {
+          closeJobModal();
+        }, 3000);
+
+      } catch (err) {
+        alert('Network error while approving job.');
+        closeJobModal();
+      }
+    }
+
+    function denyJob() {
+      if (!currentJob) return;
+      window.soundAlert.stopAlarm();
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      fetch(`${window.CONFIG.API_URL}/api/dispatch/${currentJob.id}/deny`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      }).catch(() => {});
+
+      closeJobModal();
+    }
+
+    function handleJobLockedByOther(driverName) {
+      window.soundAlert.stopAlarm();
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      document.getElementById('modalActionButtons').classList.add('hidden');
+      document.getElementById('jobDetailsCard').classList.add('hidden');
+
+      const lockedNotice = document.getElementById('lockedNotice');
+      document.getElementById('lockedByText').textContent = `Driver ${driverName} approved this request first!`;
+      lockedNotice.classList.remove('hidden');
+
+      setTimeout(() => {
+        closeJobModal();
+      }, 3000);
+    }
+
+    // Toggle Online / Offline Duty
+    function toggleDuty() {
+      isOnline = !isOnline;
+      const dutyBtn = document.getElementById('dutyToggleBtn');
+      const dutyDot = document.getElementById('dutyDot');
+      const dutyText = document.getElementById('dutyText');
+      const radarStatusText = document.getElementById('radarStatusText');
+      const dutyBanner = document.getElementById('dutyBanner');
+
+      if (isOnline) {
+        dutyBtn.className = "flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-bold transition shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white";
+        dutyDot.className = "w-2.5 h-2.5 rounded-full bg-white animate-pulse";
+        dutyText.textContent = "ONLINE / ON DUTY";
+        radarStatusText.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span><span>Scanning for jobs</span>`;
+        radarStatusText.className = "text-xs font-bold text-emerald-600 flex items-center justify-end space-x-1";
+        dutyBanner.classList.remove('opacity-50');
+      } else {
+        dutyBtn.className = "flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-bold transition shadow-sm bg-slate-600 hover:bg-slate-500 text-slate-200";
+        dutyDot.className = "w-2.5 h-2.5 rounded-full bg-slate-400";
+        dutyText.textContent = "OFFLINE / PAUSED";
+        radarStatusText.innerHTML = `<span>Paused</span>`;
+        radarStatusText.className = "text-xs font-bold text-slate-400 flex items-center justify-end";
+        dutyBanner.classList.add('opacity-50');
+      }
+    }
+
+    function testAudio() {
+      window.soundAlert.playJobChime();
+    }
+
+    function logout() {
+      localStorage.removeItem('agri_token');
+      localStorage.removeItem('agri_user');
+      window.location.href = '/login.html';
+    }
+
+    // Load History
+    async function loadMyJobs() {
+      const tbody = document.getElementById('jobsTableBody');
+      try {
+        const res = await fetch(`${window.CONFIG.API_URL}/api/dispatch/my-jobs`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (!data.jobs || data.jobs.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" class="px-6 py-8 text-center text-slate-400 text-xs">
+                No approved bookings yet. Keep your dashboard open to receive incoming requests!
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = data.jobs.map(j => `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="px-6 py-4 font-mono text-xs font-bold text-emerald-800">${j.id}</td>
+            <td class="px-6 py-4 font-semibold text-slate-700">${j.requester_phone}</td>
+            <td class="px-6 py-4">${j.date}</td>
+            <td class="px-6 py-4 font-medium text-slate-800">${j.location}</td>
+            <td class="px-6 py-4 text-xs text-slate-500 max-w-xs truncate">${j.notes || '-'}</td>
+            <td class="px-6 py-4">
+              <span class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200">
+                APPROVED
+              </span>
+            </td>
+          </tr>
+        `).join('');
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500 text-xs">Failed to load bookings</td></tr>`;
+      }
+    }
+
+    // Initialize history on page load
+    loadMyJobs();
+  </script>
+</body>
+</html>

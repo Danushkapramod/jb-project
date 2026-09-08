@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Login | AgriDispatch</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="/config.js"></script>
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+
+  <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
+    <div class="flex justify-between items-center px-4 mb-2">
+      <a href="/" class="inline-flex items-center space-x-2 text-emerald-800 font-bold text-xl">
+        <span class="text-2xl">🚜</span>
+        <span>AgriDispatch</span>
+      </a>
+      <button onclick="window.setBackendUrl()" title="Configure Render Backend API URL" class="text-xs bg-white hover:bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg border border-slate-200 shadow-sm flex items-center space-x-1">
+        <i class="fa-solid fa-server text-[10px] text-emerald-600"></i>
+        <span>API</span>
+      </button>
+    </div>
+    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Vehicle Owner Login</h2>
+    <p class="mt-2 text-sm text-slate-600">Access your driver console to receive real-time vehicle booking alerts</p>
+  </div>
+
+  <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-white py-8 px-6 shadow-xl rounded-2xl sm:px-10 border border-slate-100">
+
+      <div id="alertBox" class="hidden mb-6 p-4 rounded-xl text-sm font-medium bg-red-50 text-red-800 border border-red-200"></div>
+
+      <form id="loginForm" class="space-y-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Email Address</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+              <i class="fa-solid fa-envelope"></i>
+            </span>
+            <input type="email" id="email" required placeholder="sunil@agri.university.lk"
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+              <i class="fa-solid fa-lock"></i>
+            </span>
+            <input type="password" id="password" required placeholder="••••••••"
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm">
+          </div>
+        </div>
+
+        <div>
+          <button type="submit" id="submitBtn"
+            class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg transition duration-150 flex items-center justify-center space-x-2">
+            <span>Log In to Dashboard</span>
+            <i class="fa-solid fa-arrow-right text-sm"></i>
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-6 text-center text-sm text-slate-500">
+        New vehicle owner?
+        <a href="/register.html" class="font-semibold text-emerald-700 hover:text-emerald-600">Register vehicle here</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const alertBox = document.getElementById('alertBox');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      alertBox.classList.add('hidden');
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Authenticating...</span>`;
+
+      try {
+        const response = await fetch(`${window.CONFIG.API_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alertBox.textContent = data.error || 'Login failed. Invalid credentials.';
+          alertBox.classList.remove('hidden');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<span>Log In to Dashboard</span><i class="fa-solid fa-arrow-right text-sm"></i>`;
+          return;
+        }
+
+        localStorage.setItem('agri_token', data.token);
+        localStorage.setItem('agri_user', JSON.stringify(data.user));
+
+        window.location.href = '/dashboard.html';
+
+      } catch (err) {
+        alertBox.textContent = 'Network error. Could not connect to server.';
+        alertBox.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Log In to Dashboard</span><i class="fa-solid fa-arrow-right text-sm"></i>`;
+      }
+    });
+  </script>
+</body>
+</html>

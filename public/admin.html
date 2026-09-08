@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin & WhatsApp Web Station | AgriDispatch</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/config.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="flex items-center space-x-2 text-white hover:text-emerald-400 transition">
+          <span class="text-2xl">🚜</span>
+          <span class="font-bold text-lg tracking-tight">AgriDispatch</span>
+        </a>
+        <span class="text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono">
+          System Control & WhatsApp
+        </span>
+      </div>
+
+      <div class="flex items-center space-x-3 text-xs">
+        <button onclick="window.setBackendUrl()" title="Configure Render Backend API URL" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-lg border border-slate-700 flex items-center space-x-1 transition">
+          <i class="fa-solid fa-server text-[10px] text-emerald-400"></i>
+          <span>API Config</span>
+        </button>
+        <a href="/dashboard.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+          <i class="fa-solid fa-gauge-high mr-1"></i> Driver View
+        </a>
+        <a href="/" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+          <i class="fa-solid fa-house mr-1"></i> Home
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full space-y-8">
+
+    <!-- Top Grid: WhatsApp Station & API Dispatch Simulator -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+      <!-- LEFT: WhatsApp Web Connection Card (5 Cols) -->
+      <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+            <div class="flex items-center space-x-2">
+              <i class="fa-brands fa-whatsapp text-2xl text-emerald-600"></i>
+              <h2 class="font-bold text-slate-900 text-lg">WhatsApp Web Client</h2>
+            </div>
+            <span id="waStatusBadge" class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full border border-amber-200">
+              Initializing...
+            </span>
+          </div>
+
+          <!-- QR Code Display Box -->
+          <div id="qrContainer" class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center my-2 flex flex-col items-center justify-center min-h-[280px]">
+            <div id="qrLoadingSpinner" class="text-slate-400 space-y-2">
+              <i class="fa-solid fa-spinner fa-spin text-3xl text-emerald-600"></i>
+              <p class="text-xs font-medium text-slate-500">Starting WhatsApp Web Chromium engine...</p>
+            </div>
+            <img id="qrImage" class="hidden max-w-[220px] max-h-[220px] rounded-xl shadow-md border border-slate-200 bg-white p-2" alt="WhatsApp QR Code" />
+            <div id="qrInstructions" class="hidden mt-3 text-xs text-slate-500">
+              <p class="font-bold text-slate-700">Scan this QR code with your phone:</p>
+              <p>WhatsApp &gt; Linked Devices &gt; Link a Device</p>
+            </div>
+            <div id="connectedBanner" class="hidden text-center space-y-2">
+              <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-3xl mx-auto">
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <h3 class="font-bold text-slate-800 text-base">WhatsApp is Connected!</h3>
+              <p id="connectedPhoneText" class="text-xs text-slate-500 font-mono">Phone: Ready</p>
+              <p class="text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                Ready to dispatch automated booking confirmations.
+              </p>
+            </div>
+          </div>
+
+          <!-- WhatsApp Status Logs -->
+          <div class="mt-4">
+            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">WhatsApp Engine Logs</h4>
+            <div id="waLogs" class="bg-slate-900 text-emerald-400 font-mono text-xs p-3 rounded-xl h-28 overflow-y-auto space-y-1">
+              <div>[System] Initializing WhatsApp service...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 mt-4 border-t border-slate-100 flex gap-2">
+          <button onclick="reconnectWhatsApp()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl transition flex items-center space-x-1">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>Restart Session</span>
+          </button>
+          <button onclick="toggleTestMsgBox()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold px-4 py-2 rounded-xl transition border border-emerald-200">
+            <i class="fa-solid fa-paper-plane mr-1"></i> Send Test Msg
+          </button>
+        </div>
+
+        <!-- Test Message Box (Collapsible) -->
+        <div id="testMsgBox" class="hidden mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 text-xs">
+          <div class="font-bold text-slate-700">Test WhatsApp Sending:</div>
+          <input type="text" id="testPhone" placeholder="Phone (e.g. 94771234567)" class="w-full p-2 border border-slate-300 rounded-lg text-xs" />
+          <input type="text" id="testContent" placeholder="Message text" value="AgriDispatch WhatsApp bot test message!" class="w-full p-2 border border-slate-300 rounded-lg text-xs" />
+          <button onclick="sendTestMessage()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg transition">
+            Send Test
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: API Dispatch Simulator (7 Cols) -->
+      <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+            <div>
+              <h2 class="font-bold text-slate-900 text-lg">Vehicle Dispatch API Simulator</h2>
+              <p class="text-xs text-slate-500">Trigger <code class="bg-slate-100 font-mono text-emerald-800 px-1 py-0.5 rounded">POST /api/dispatch</code> to test instant driver pop-ups</p>
+            </div>
+            <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-200">
+              API Sandbox
+            </span>
+          </div>
+
+          <div id="dispatchAlert" class="hidden mb-4 p-3 rounded-xl text-xs font-semibold"></div>
+
+          <form id="dispatchForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Requester WhatsApp Phone -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Requester WhatsApp No <span class="text-rose-500">*</span>
+              </label>
+              <input type="text" id="reqPhone" required placeholder="e.g. 94771234567 or 0771234567"
+                class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-xs">
+              <span class="text-[10px] text-slate-400">Gets the confirmation WhatsApp message</span>
+            </div>
+
+            <!-- Vehicle Type -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Vehicle Type <span class="text-rose-500">*</span>
+              </label>
+              <select id="reqVehicleType" required
+                class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-xs bg-white font-medium">
+                <option value="Tractor">🚜 Tractor</option>
+                <option value="Harvester">🌾 Harvester</option>
+                <option value="Lorry">🚛 Lorry</option>
+                <option value="Combine Harvester">🚜🌾 Combine Harvester</option>
+                <option value="Water Bowser">💧 Water Bowser</option>
+              </select>
+              <span class="text-[10px] text-slate-400">Only matching owners will get the pop-up</span>
+            </div>
+
+            <!-- Date -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Work Date <span class="text-rose-500">*</span>
+              </label>
+              <input type="date" id="reqDate" required
+                class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-xs">
+            </div>
+
+            <!-- Field Location -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Destination / Field Location <span class="text-rose-500">*</span>
+              </label>
+              <input type="text" id="reqLocation" required placeholder="e.g. Faculty Field Zone B, Plot 4"
+                class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-xs">
+            </div>
+
+            <!-- Notes -->
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Special Instructions / Notes
+              </label>
+              <input type="text" id="reqNotes" placeholder="e.g. 3 acres ploughed before heavy rain"
+                class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-xs">
+            </div>
+
+            <div class="sm:col-span-2 pt-2">
+              <button type="submit" id="sendDispatchBtn"
+                class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-sm">
+                <i class="fa-solid fa-tower-broadcast"></i>
+                <span>Trigger Dispatch Request (Broadcast to Owners)</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Developer cURL Snippet -->
+          <div class="mt-6 pt-4 border-t border-slate-100">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Equivalent cURL API Call:</span>
+              <button onclick="copyCurl()" class="text-[11px] text-emerald-700 hover:text-emerald-800 font-semibold">
+                <i class="fa-regular fa-copy mr-1"></i> Copy
+              </button>
+            </div>
+            <pre id="curlBox" class="bg-slate-900 text-emerald-300 font-mono text-[11px] p-3 rounded-xl overflow-x-auto select-all">curl -X POST http://localhost:3000/api/dispatch \
+  -H "Content-Type: application/json" \
+  -d '{"requesterPhone":"94771234567","vehicleType":"Tractor","date":"2026-09-10","location":"Faculty Field Zone B","notes":"Ploughing 2 acres"}'</pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM: Live Dispatches System Feed -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+        <div>
+          <h3 class="text-base font-bold text-slate-800">All System Dispatches (Live Stream)</h3>
+          <p class="text-xs text-slate-500">Monitor all booking requests, approval statuses, and locked drivers</p>
+        </div>
+        <button onclick="loadAllDispatches()" class="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center space-x-1">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span>Refresh</span>
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-xs uppercase text-slate-500 border-b border-slate-200">
+            <tr>
+              <th class="px-6 py-3">ID</th>
+              <th class="px-6 py-3">Vehicle</th>
+              <th class="px-6 py-3">Requester Phone</th>
+              <th class="px-6 py-3">Date</th>
+              <th class="px-6 py-3">Location</th>
+              <th class="px-6 py-3">Status</th>
+              <th class="px-6 py-3">Claimed By Driver</th>
+            </tr>
+          </thead>
+          <tbody id="allDispatchesBody" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="7" class="px-6 py-8 text-center text-slate-400 text-xs">
+                <i class="fa-solid fa-spinner fa-spin text-lg mb-2 block"></i>
+                Loading dispatches...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Set default date to today
+    document.getElementById('reqDate').value = new Date().toISOString().split('T')[0];
+
+    // Socket.io for Real-time WhatsApp status and dispatches
+    const socket = io(window.CONFIG.API_URL);
+
+    socket.on('whatsapp_status', (data) => {
+      console.log('WhatsApp status update:', data);
+      updateWhatsAppUI(data);
+    });
+
+    socket.on('whatsapp_log', (entry) => {
+      appendLog(entry);
+    });
+
+    socket.on('new_job_request', () => {
+      loadAllDispatches();
+    });
+
+    socket.on('job_locked', () => {
+      loadAllDispatches();
+    });
+
+    function updateWhatsAppUI(data) {
+      const badge = document.getElementById('waStatusBadge');
+      const spinner = document.getElementById('qrLoadingSpinner');
+      const qrImg = document.getElementById('qrImage');
+      const instructions = document.getElementById('qrInstructions');
+      const connectedBanner = document.getElementById('connectedBanner');
+
+      badge.textContent = data.status;
+
+      if (data.status === 'READY') {
+        badge.className = "bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200";
+        spinner.classList.add('hidden');
+        qrImg.classList.add('hidden');
+        instructions.classList.add('hidden');
+        connectedBanner.classList.remove('hidden');
+
+        const number = (data.info && data.info.wid && data.info.wid.user) ? data.info.wid.user : 'Active';
+        document.getElementById('connectedPhoneText').textContent = `Connected Number: +${number}`;
+
+      } else if (data.status === 'WAITING_FOR_QR_SCAN' && data.qrCode) {
+        badge.className = "bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full border border-amber-200";
+        spinner.classList.add('hidden');
+        connectedBanner.classList.add('hidden');
+        qrImg.src = data.qrCode;
+        qrImg.classList.remove('hidden');
+        instructions.classList.remove('hidden');
+
+      } else if (data.status === 'INITIALIZING') {
+        badge.className = "bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-200";
+        spinner.classList.remove('hidden');
+        qrImg.classList.add('hidden');
+        instructions.classList.add('hidden');
+        connectedBanner.classList.add('hidden');
+
+      } else {
+        badge.className = "bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-full border border-slate-300";
+      }
+
+      if (data.logs) {
+        const logBox = document.getElementById('waLogs');
+        logBox.innerHTML = data.logs.map(l => `<div>[${l.timestamp}] ${l.message}</div>`).join('');
+      }
+    }
+
+    function appendLog(entry) {
+      const logBox = document.getElementById('waLogs');
+      const div = document.createElement('div');
+      div.textContent = `[${entry.timestamp}] ${entry.message}`;
+      logBox.prepend(div);
+    }
+
+    async function reconnectWhatsApp() {
+      const logBox = document.getElementById('waLogs');
+      appendLog({ timestamp: new Date().toLocaleTimeString(), message: 'Triggered WhatsApp client reconnect...' });
+      await fetch(`${window.CONFIG.API_URL}/api/whatsapp/reconnect`, { method: 'POST' });
+    }
+
+    function toggleTestMsgBox() {
+      const box = document.getElementById('testMsgBox');
+      box.classList.toggle('hidden');
+    }
+
+    async function sendTestMessage() {
+      const phone = document.getElementById('testPhone').value.trim();
+      const message = document.getElementById('testContent').value.trim();
+      if (!phone || !message) {
+        alert('Phone and message are required');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${window.CONFIG.API_URL}/api/whatsapp/test-message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, message })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Message sent successfully!');
+        } else {
+          alert('Send error: ' + (data.error || 'Check if WhatsApp is connected.'));
+        }
+      } catch (e) {
+        alert('Network error');
+      }
+    }
+
+    // Form Submission: Trigger Dispatch
+    const dispatchForm = document.getElementById('dispatchForm');
+    const dispatchAlert = document.getElementById('dispatchAlert');
+    const sendBtn = document.getElementById('sendDispatchBtn');
+
+    dispatchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      dispatchAlert.classList.add('hidden');
+
+      const requesterPhone = document.getElementById('reqPhone').value.trim();
+      const vehicleType = document.getElementById('reqVehicleType').value;
+      const date = document.getElementById('reqDate').value;
+      const location = document.getElementById('reqLocation').value.trim();
+      const notes = document.getElementById('reqNotes').value.trim();
+
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Broadcasting Request...</span>`;
+
+      try {
+        const res = await fetch(`${window.CONFIG.API_URL}/api/dispatch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requesterPhone, vehicleType, date, location, notes })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          dispatchAlert.className = "mb-4 p-3 rounded-xl text-xs font-semibold bg-green-50 text-green-800 border border-green-200";
+          dispatchAlert.innerHTML = `✅ <strong>Broadcasted!</strong> Request ${data.dispatch.id} sent to registered <strong>${vehicleType}</strong> drivers. Check their screen!`;
+          dispatchAlert.classList.remove('hidden');
+          loadAllDispatches();
+        } else {
+          dispatchAlert.className = "mb-4 p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200";
+          dispatchAlert.textContent = data.error || 'Failed to dispatch';
+          dispatchAlert.classList.remove('hidden');
+        }
+      } catch (err) {
+        dispatchAlert.className = "mb-4 p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200";
+        dispatchAlert.textContent = 'Network error connecting to API';
+        dispatchAlert.classList.remove('hidden');
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = `<i class="fa-solid fa-tower-broadcast"></i><span>Trigger Dispatch Request (Broadcast to Owners)</span>`;
+      }
+    });
+
+    async function loadAllDispatches() {
+      const tbody = document.getElementById('allDispatchesBody');
+      try {
+        const res = await fetch(`${window.CONFIG.API_URL}/api/dispatch/all`);
+        const data = await res.json();
+
+        if (!data.dispatches || data.dispatches.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-6 text-center text-slate-400 text-xs">No dispatches triggered yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.dispatches.map(d => {
+          const isApproved = d.status === 'APPROVED';
+          const statusBadge = isApproved 
+            ? `<span class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-0.5 rounded-full border border-green-200">APPROVED</span>`
+            : `<span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-200 animate-pulse">PENDING</span>`;
+
+          const driverClaimed = isApproved 
+            ? `<span class="font-bold text-slate-800 text-xs">${d.approved_owner_name || 'Driver #' + d.approved_by_user_id}</span> <span class="text-slate-400 text-[10px]">(${d.approved_owner_phone || ''})</span>`
+            : `<span class="text-slate-400 text-xs italic">Waiting for approval...</span>`;
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="px-6 py-3.5 font-mono text-xs font-bold text-emerald-800">${d.id}</td>
+              <td class="px-6 py-3.5 font-medium text-slate-800">${d.vehicle_type}</td>
+              <td class="px-6 py-3.5 font-mono text-xs">${d.requester_phone}</td>
+              <td class="px-6 py-3.5 text-xs">${d.date}</td>
+              <td class="px-6 py-3.5 text-xs text-slate-700">${d.location}</td>
+              <td class="px-6 py-3.5">${statusBadge}</td>
+              <td class="px-6 py-3.5">${driverClaimed}</td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-red-500 text-xs">Failed to load live dispatches.</td></tr>`;
+      }
+    }
+
+    function copyCurl() {
+      const curl = `curl -X POST ${window.CONFIG.API_URL}/api/dispatch \\\n  -H "Content-Type: application/json" \\\n  -d '{"requesterPhone":"94771234567","vehicleType":"Tractor","date":"2026-09-10","location":"Faculty Field Zone B","notes":"Ploughing 2 acres"}'`;
+      navigator.clipboard.writeText(curl);
+      alert('cURL command copied to clipboard!');
+    }
+
+    // Initial check
+    fetch(`${window.CONFIG.API_URL}/api/whatsapp/status`).then(r => r.json()).then(updateWhatsAppUI).catch(() => {});
+    loadAllDispatches();
+  </script>
+</body>
+</html>

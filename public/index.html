@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agri-Vehicle Dispatch & WhatsApp System | University Farm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="/config.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Navigation Bar -->
+  <header class="bg-emerald-800 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <span class="bg-emerald-600 p-2 rounded-lg text-xl">🚜</span>
+        <div>
+          <span class="font-bold text-lg tracking-tight">AgriDispatch</span>
+          <span class="text-xs bg-emerald-700 text-emerald-200 px-2 py-0.5 rounded-full ml-1 font-medium">University Farm</span>
+        </div>
+      </div>
+      <nav class="flex items-center space-x-2 sm:space-x-3 text-sm font-medium">
+        <button onclick="window.setBackendUrl()" title="Configure Render Backend API URL" class="text-xs bg-emerald-900/80 hover:bg-emerald-700 text-emerald-200 px-2.5 py-1.5 rounded-lg border border-emerald-600 flex items-center space-x-1 transition">
+          <i class="fa-solid fa-server text-[10px]"></i>
+          <span class="hidden md:inline">API:</span>
+          <span id="backendStatusLabel" class="max-w-[120px] truncate text-[11px]">Backend</span>
+        </button>
+        <a href="/login.html" class="hover:text-emerald-200 transition px-2.5 py-1.5 text-xs sm:text-sm">Owner Login</a>
+        <a href="/register.html" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg shadow transition font-semibold text-xs sm:text-sm">Register</a>
+        <a href="/admin.html" class="border border-emerald-500 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg transition text-xs sm:text-sm">
+          <i class="fa-brands fa-whatsapp mr-1 text-green-400"></i> WhatsApp
+        </a>
+      </nav>
+    </div>
+  </header>
+  <script>
+    if (window.CONFIG && window.CONFIG.API_URL) {
+      try {
+        const u = new URL(window.CONFIG.API_URL);
+        document.getElementById('backendStatusLabel').textContent = u.hostname;
+      } catch(e) {
+        document.getElementById('backendStatusLabel').textContent = window.CONFIG.API_URL;
+      }
+    }
+  </script>
+
+  <!-- Hero Section -->
+  <main class="flex-grow">
+    <div class="bg-gradient-to-b from-emerald-800 to-emerald-900 text-white py-16 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto text-center">
+        <span class="bg-emerald-700/80 text-emerald-200 text-xs uppercase tracking-wider font-semibold px-3 py-1 rounded-full border border-emerald-500/30 inline-block mb-4">
+          Real-Time University Agricultural Machinery Network
+        </span>
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-6">
+          On-Demand Agri-Vehicle Dispatch & Automated WhatsApp Alerts
+        </h1>
+        <p class="text-base sm:text-lg text-emerald-100 max-w-2xl mx-auto mb-8 leading-relaxed">
+          Connect agricultural vehicle owners with university fields in real time. PickMe-style instant driver notifications, first-come locking, and automatic WhatsApp booking confirmations.
+        </p>
+        <div class="flex flex-wrap justify-center gap-4">
+          <a href="/register.html" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-6 py-3 rounded-xl shadow-lg transition flex items-center space-x-2">
+            <i class="fa-solid fa-key"></i>
+            <span>Register Your Vehicle</span>
+          </a>
+          <a href="/dashboard.html" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition flex items-center space-x-2">
+            <i class="fa-solid fa-gauge-high"></i>
+            <span>Go to Driver Dashboard</span>
+          </a>
+          <a href="/admin.html" class="bg-white/10 hover:bg-white/20 text-white font-semibold px-6 py-3 rounded-xl border border-white/20 transition flex items-center space-x-2">
+            <i class="fa-brands fa-whatsapp text-green-400 text-lg"></i>
+            <span>WhatsApp Station & API Tester</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supported Vehicle Types Banner -->
+    <div class="max-w-6xl mx-auto px-4 -mt-8">
+      <div class="bg-white rounded-2xl shadow-xl p-6 border border-slate-100">
+        <div class="text-center mb-6">
+          <h2 class="text-xs uppercase tracking-widest text-slate-400 font-bold">Supported Agricultural Machinery</h2>
+          <p class="text-sm font-semibold text-slate-700">Vehicle owners can register one of these 5 machine categories:</p>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
+          <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100 hover:scale-105 transition">
+            <div class="text-3xl mb-2">🚜</div>
+            <div class="font-bold text-slate-800 text-sm">Tractor</div>
+            <div class="text-xs text-slate-500">Ploughing & Hauling</div>
+          </div>
+          <div class="p-4 bg-amber-50 rounded-xl border border-amber-100 hover:scale-105 transition">
+            <div class="text-3xl mb-2">🌾</div>
+            <div class="font-bold text-slate-800 text-sm">Harvester</div>
+            <div class="text-xs text-slate-500">Paddy & Crop Reaping</div>
+          </div>
+          <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 hover:scale-105 transition">
+            <div class="text-3xl mb-2">🚛</div>
+            <div class="font-bold text-slate-800 text-sm">Lorry</div>
+            <div class="text-xs text-slate-500">Bulk Harvest Transport</div>
+          </div>
+          <div class="p-4 bg-purple-50 rounded-xl border border-purple-100 hover:scale-105 transition">
+            <div class="text-3xl mb-2">🚜🌾</div>
+            <div class="font-bold text-slate-800 text-sm">Combine Harvester</div>
+            <div class="text-xs text-slate-500">Reaping, Threshing, Winnowing</div>
+          </div>
+          <div class="p-4 bg-cyan-50 rounded-xl border border-cyan-100 hover:scale-105 transition">
+            <div class="text-3xl mb-2">💧</div>
+            <div class="font-bold text-slate-800 text-sm">Water Bowser</div>
+            <div class="text-xs text-slate-500">Field Irrigation & Water</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="max-w-6xl mx-auto px-4 py-16">
+      <div class="text-center mb-12">
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-3">How the System Operates</h2>
+        <p class="text-slate-600 max-w-xl mx-auto">From API request to instant driver pop-up and WhatsApp message in seconds.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Step 1 -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
+          <div class="w-10 h-10 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center font-bold mb-4">1</div>
+          <h3 class="font-bold text-slate-800 mb-2">Vehicle Owner Registers</h3>
+          <p class="text-sm text-slate-600">Owners register with email & password, contact details, vehicle registration, and select their vehicle type.</p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
+          <div class="w-10 h-10 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center font-bold mb-4">2</div>
+          <h3 class="font-bold text-slate-800 mb-2">Field API Call Triggered</h3>
+          <p class="text-sm text-slate-600">External system or farm manager calls <code class="text-xs bg-slate-100 p-1 rounded font-mono">POST /api/dispatch</code> with WhatsApp number, date, location & machine type.</p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
+          <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-full flex items-center justify-center font-bold mb-4">3</div>
+          <h3 class="font-bold text-slate-800 mb-2">PickMe-Style Pop-Up</h3>
+          <p class="text-sm text-slate-600">Active owners with matching vehicle type receive an audio chime and pop-up modal to Approve or Deny.</p>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
+          <div class="w-10 h-10 bg-green-100 text-green-800 rounded-full flex items-center justify-center font-bold mb-4">4</div>
+          <h3 class="font-bold text-slate-800 mb-2">Locked & WhatsApp Sent</h3>
+          <p class="text-sm text-slate-600">First owner to approve locks the request. A formatted WhatsApp message is instantly sent to the requester.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-800 text-slate-400 text-sm py-6 border-t border-slate-700">
+    <div class="max-w-7xl mx-auto px-4 text-center flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div>University Agricultural Vehicle Dispatch Platform &copy; 2026</div>
+      <div class="flex space-x-6 text-xs">
+        <a href="/admin.html" class="hover:text-emerald-400">WhatsApp QR Code & Tester</a>
+        <a href="/login.html" class="hover:text-emerald-400">Driver Portal</a>
+        <a href="/register.html" class="hover:text-emerald-400">Register</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -268,7 +268,10 @@
       loadAllDispatches();
     });
 
+    let currentWaStatus = 'INITIALIZING';
+
     function updateWhatsAppUI(data) {
+      currentWaStatus = data.status;
       const badge = document.getElementById('waStatusBadge');
       const spinner = document.getElementById('qrLoadingSpinner');
       const qrImg = document.getElementById('qrImage');
@@ -338,6 +341,11 @@
         return;
       }
 
+      if (currentWaStatus !== 'READY') {
+        alert(`⚠️ WhatsApp is not connected yet!\n\nCurrent Status: ${currentWaStatus}\n\nPlease scan the QR code above with your WhatsApp app (WhatsApp > Settings > Linked Devices > Link a Device) first to enable messaging.`);
+        return;
+      }
+
       try {
         const res = await fetch(`${window.CONFIG.API_URL}/api/whatsapp/test-message`, {
           method: 'POST',
@@ -345,13 +353,13 @@
           body: JSON.stringify({ phone, message })
         });
         const data = await res.json();
-        if (res.ok) {
-          alert('Message sent successfully!');
+        if (res.ok && data.success) {
+          alert('✅ WhatsApp message sent successfully to ' + phone + '!');
         } else {
-          alert('Send error: ' + (data.error || 'Check if WhatsApp is connected.'));
+          alert('⚠️ Send error: ' + (data.error || 'Could not dispatch WhatsApp message.'));
         }
       } catch (e) {
-        alert('Network error');
+        alert('⚠️ Network error: ' + (e.message || 'Check your connection to the server.'));
       }
     }
 
@@ -447,8 +455,18 @@
       alert('cURL command copied to clipboard!');
     }
 
-    // Initial check
-    fetch(`${window.CONFIG.API_URL}/api/whatsapp/status`).then(r => r.json()).then(updateWhatsAppUI).catch(() => {});
+    // Initial check and regular status polling
+    async function syncWhatsAppStatus() {
+      try {
+        const res = await fetch(`${window.CONFIG.API_URL}/api/whatsapp/status`);
+        if (res.ok) {
+          const data = await res.json();
+          updateWhatsAppUI(data);
+        }
+      } catch (e) {}
+    }
+    syncWhatsAppStatus();
+    setInterval(syncWhatsAppStatus, 3500);
     loadAllDispatches();
   </script>
 </body>

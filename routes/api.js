@@ -374,22 +374,27 @@ router.post('/whatsapp/reconnect', (req, res) => {
   res.json({ message: 'WhatsApp re-initialization triggered.' });
 });
 
-// POST /api/whatsapp/test-message - Send a quick custom WhatsApp message to test connectivity
-router.post('/whatsapp/test-message', async (req, res) => {
+// POST /api/whatsapp/test-message or test_message - Send a quick custom WhatsApp message to test connectivity
+router.post(['/whatsapp/test-message', '/whatsapp/test_message'], async (req, res) => {
   const { phone, message } = req.body;
   if (!phone || !message) {
-    return res.status(400).json({ error: 'Phone number and message text are required.' });
+    return res.status(400).json({ success: false, error: 'Phone number and message text are required.' });
   }
 
-  const formatted = whatsappService.formatWhatsAppNumber(phone);
   if (!whatsappService.client || whatsappService.status !== 'READY') {
-    return res.status(503).json({ error: 'WhatsApp client is not connected or not ready.' });
+    return res.status(400).json({ 
+      success: false, 
+      error: `WhatsApp is not connected yet (Current status: ${whatsappService.status}). Please scan the QR code on the admin page with WhatsApp on your phone (Linked Devices) first!` 
+    });
   }
 
   try {
+    const formatted = whatsappService.formatWhatsAppNumber(phone);
     const sent = await whatsappService.client.sendMessage(formatted, message);
-    res.json({ success: true, messageId: sent.id._serialized });
+    whatsappService.log(`Direct test message sent to ${formatted}`, 'success');
+    res.json({ success: true, message: 'Message sent successfully via WhatsApp!', messageId: sent.id._serialized });
   } catch (err) {
+    console.error('Test message send error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

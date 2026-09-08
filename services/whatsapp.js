@@ -164,6 +164,9 @@ class WhatsAppService {
     // Handle standard Sri Lanka local format (077xxxxxxx -> 9477xxxxxxx)
     if (clean.startsWith('0') && clean.length === 10) {
       clean = '94' + clean.slice(1);
+    } else if (clean.length === 9) {
+      // 9 digits without leading 0 (e.g. 728649732 -> 94728649732)
+      clean = '94' + clean;
     }
 
     if (!clean.endsWith('@c.us')) {

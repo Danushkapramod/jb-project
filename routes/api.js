@@ -369,4 +369,16 @@ router.post('/whatsapp/test-message', async (req, res) => {
   }
 });
 
+// POST /api/auth/clear-user - Remove a user to allow re-registration if needed
+router.post('/auth/clear-user', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required.' });
+  try {
+    await dbAsync.run('DELETE FROM users WHERE email = ?', [email.trim().toLowerCase()]);
+    res.json({ success: true, message: `Account ${email} cleared. You can now register fresh!` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

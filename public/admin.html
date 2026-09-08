@@ -298,6 +298,14 @@
         qrImg.classList.remove('hidden');
         instructions.classList.remove('hidden');
 
+      } else if (data.status === 'AUTHENTICATED') {
+        badge.className = "bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-200 animate-pulse";
+        badge.textContent = "AUTHENTICATED / LOGGING IN...";
+        spinner.classList.remove('hidden');
+        qrImg.classList.add('hidden');
+        instructions.classList.add('hidden');
+        connectedBanner.classList.add('hidden');
+
       } else if (data.status === 'INITIALIZING') {
         badge.className = "bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-200";
         spinner.classList.remove('hidden');

@@ -77,12 +77,16 @@ class WhatsAppService {
           '--disable-dev-shm-usage',
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
-          '--disable-gpu'
+          '--no-zygote',
+          '--disable-gpu',
+          '--disable-extensions',
+          '--mute-audio',
+          '--no-default-browser-check',
+          '--js-flags=--max-old-space-size=256'
         ]
       },
       webVersionCache: {
-        type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
+        type: 'none'
       }
     });
 
@@ -101,9 +105,16 @@ class WhatsAppService {
       }
     });
 
+    this.client.on('loading_screen', (percent, message) => {
+      this.log(`Syncing WhatsApp: ${percent}% (${message || 'Loading'})`);
+      if (this.io) {
+        this.io.emit('whatsapp_status', this.getStatus());
+      }
+    });
+
     this.client.on('authenticated', () => {
       this.status = 'AUTHENTICATED';
-      this.log('WhatsApp authenticated successfully.');
+      this.log('WhatsApp authenticated successfully! Preparing connection...', 'success');
       if (this.io) {
         this.io.emit('whatsapp_status', this.getStatus());
       }

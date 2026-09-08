@@ -42,7 +42,15 @@
         <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">Driver Console</span>
       </div>
 
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-3">
+        <!-- Messages / Active Requests Icon Button -->
+        <button id="messagesBtn" onclick="toggleMessagesModal()" title="View Unclaimed Requests"
+          class="relative flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition">
+          <i class="fa-solid fa-bell text-sm text-amber-400"></i>
+          <span class="text-xs font-bold hidden sm:inline">Requests</span>
+          <span id="msgBadge" class="hidden bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm animate-pulse">0</span>
+        </button>
+
         <!-- Duty Status Switch -->
         <button id="dutyToggleBtn" onclick="toggleDuty()"
           class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-bold transition shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white">
@@ -101,13 +109,42 @@
         </div>
         <div>
           <h2 class="text-lg font-bold">You are ON DUTY and ready for dispatches</h2>
-          <p class="text-xs text-emerald-100">Keep this tab open. When a farm field requests your vehicle type, your phone/computer will ring with a pop-up alert.</p>
+          <p class="text-xs text-emerald-100">Keep this tab open. When a farm field requests your vehicle type, your phone/computer will alert you with incoming requests.</p>
         </div>
       </div>
       <div class="flex items-center space-x-2">
         <button onclick="testAudio()" class="text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition font-medium border border-white/30">
           <i class="fa-solid fa-volume-high mr-1"></i> Test Sound
         </button>
+      </div>
+    </div>
+
+    <!-- Available Pending Requests (Claimable Now) -->
+    <div id="pendingSection" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+      <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-gradient-to-r from-amber-50 to-orange-50">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="text-base font-bold text-slate-900">Unclaimed Vehicle Requests</h3>
+              <span id="pendingCountBadge" class="bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-slate-200">0 Available</span>
+            </div>
+            <p class="text-xs text-slate-600">Requests already placed for your vehicle type that have not been accepted yet. Claim them before other drivers!</p>
+          </div>
+        </div>
+        <button onclick="loadPendingRequests()" class="text-xs text-amber-900 hover:text-amber-950 font-bold flex items-center space-x-1.5 bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm transition">
+          <i class="fa-solid fa-arrows-rotate text-amber-600"></i>
+          <span>Refresh Requests</span>
+        </button>
+      </div>
+
+      <div id="pendingRequestsContainer" class="p-6">
+        <div class="text-center py-6 text-slate-400 text-xs">
+          <i class="fa-solid fa-spinner fa-spin text-lg mb-2 block text-amber-500"></i>
+          Scanning for available bookings...
+        </div>
       </div>
     </div>
 
@@ -238,6 +275,31 @@
     </div>
   </div>
 
+  <!-- ======================================================== -->
+  <!-- MESSAGES / UNCLAIMED REQUESTS MODAL OVERLAY -->
+  <!-- ======================================================== -->
+  <div id="messagesModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden transform transition-all animate-in fade-in duration-150">
+      <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-envelope-open-text"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base">Unclaimed Dispatch Messages</h3>
+            <p class="text-xs text-slate-400">All available requests waiting for your vehicle</p>
+          </div>
+        </div>
+        <button onclick="toggleMessagesModal()" class="text-slate-400 hover:text-white text-xl p-1.5 transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="modalPendingList" class="p-6 max-h-[70vh] overflow-y-auto space-y-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
   <script>
     // Authentication Check
     const token = localStorage.getItem('agri_token');
@@ -279,24 +341,35 @@
         name: currentUser.name,
         vehicleType: currentUser.vehicle_type
       });
+      loadPendingRequests();
     });
 
     // Listen for incoming job requests
     socket.on('new_job_request', (dispatch) => {
       console.log('Incoming dispatch alert:', dispatch);
 
-      // Only trigger if driver is online AND vehicle type matches
-      if (!isOnline) return;
+      // Only process if vehicle type matches
       if (dispatch.vehicleType !== currentUser.vehicle_type) return;
 
-      // Show PickMe style pop-up!
-      showJobModal(dispatch);
+      // Single notification beep like regular WhatsApp / SMS message
+      window.soundAlert.startAlarm();
+
+      // Refresh pending requests list immediately
+      loadPendingRequests();
+
+      // Show PickMe style pop-up if driver is online
+      if (isOnline) {
+        showJobModal(dispatch);
+      }
     });
 
     // Listen for locking event (when another driver accepts first)
     socket.on('job_locked', (data) => {
       console.log('Job locked event:', data);
       
+      // Refresh pending list to remove claimed request
+      loadPendingRequests();
+
       // Ignore if this user was the one who approved it
       if (data.approvedByUserId && currentUser && Number(data.approvedByUserId) === Number(currentUser.id)) {
         return;
@@ -309,6 +382,160 @@
         handleJobLockedByOther(data.approvedBy);
       }
     });
+
+    // -------------------------------------------------------------
+    // PENDING REQUESTS / MESSAGES HANDLING
+    // -------------------------------------------------------------
+    let pendingRequests = [];
+
+    function toggleMessagesModal() {
+      const modal = document.getElementById('messagesModal');
+      modal.classList.toggle('hidden');
+    }
+
+    async function loadPendingRequests() {
+      try {
+        const res = await fetch(`${window.CONFIG.API_URL}/api/dispatch/pending`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          pendingRequests = data.pending || [];
+          updatePendingUI();
+        }
+      } catch (err) {
+        console.error('Failed to load pending requests:', err);
+      }
+    }
+
+    function updatePendingUI() {
+      const count = pendingRequests.length;
+      const msgBadge = document.getElementById('msgBadge');
+      const countBadge = document.getElementById('pendingCountBadge');
+
+      if (count > 0) {
+        msgBadge.textContent = count;
+        msgBadge.classList.remove('hidden');
+        countBadge.textContent = `${count} Available`;
+        countBadge.className = 'bg-rose-100 text-rose-800 text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-rose-300 animate-pulse';
+      } else {
+        msgBadge.classList.add('hidden');
+        countBadge.textContent = '0 Available';
+        countBadge.className = 'bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-slate-200';
+      }
+
+      renderPendingList(document.getElementById('pendingRequestsContainer'), false);
+      renderPendingList(document.getElementById('modalPendingList'), true);
+    }
+
+    function renderPendingList(container, isModal = false) {
+      if (!container) return;
+
+      if (pendingRequests.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-400 text-xs">
+            <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xl mx-auto mb-2">
+              <i class="fa-regular fa-calendar-check"></i>
+            </div>
+            <p class="font-bold text-slate-600">No unclaimed requests right now</p>
+            <p class="text-slate-400 mt-1">Live dispatch radar is actively scanning for requests matching your ${currentUser.vehicle_type}.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const gridClass = isModal ? 'space-y-3' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+
+      container.innerHTML = `
+        <div class="${gridClass}">
+          ${pendingRequests.map(job => `
+            <div class="bg-amber-50/70 hover:bg-amber-50 border-2 border-amber-200 hover:border-amber-400 rounded-2xl p-4 transition-all shadow-sm flex flex-col justify-between">
+              <div>
+                <div class="flex justify-between items-start mb-2.5">
+                  <span class="font-mono text-xs font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md">${job.id}</span>
+                  <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    ${emojis[job.vehicle_type] || '🚜'} ${job.vehicle_type}
+                  </span>
+                </div>
+                <div class="space-y-1.5 text-xs text-slate-700 mb-3">
+                  <div class="flex items-start space-x-1.5">
+                    <i class="fa-solid fa-location-dot text-rose-500 w-4 mt-0.5"></i>
+                    <strong class="text-slate-900 line-clamp-1">${job.location}</strong>
+                  </div>
+                  <div class="flex items-center space-x-1.5">
+                    <i class="fa-regular fa-calendar text-slate-400 w-4"></i>
+                    <span>Work Date: <strong class="text-slate-800">${job.date}</strong></span>
+                  </div>
+                  <div class="flex items-center space-x-1.5">
+                    <i class="fa-brands fa-whatsapp text-emerald-600 w-4"></i>
+                    <span>Farmer: <strong class="text-slate-800">${job.requester_phone}</strong></span>
+                  </div>
+                  ${job.notes ? `
+                    <div class="mt-2 text-[11px] text-slate-600 bg-white/90 p-2 rounded-lg border border-amber-100 italic">
+                      "${job.notes}"
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-amber-200/60">
+                <button onclick="claimPendingJob('${job.id}', this)"
+                  class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2.5 px-3 rounded-xl shadow-md hover:shadow-emerald-600/30 transition flex items-center justify-center space-x-1.5">
+                  <i class="fa-solid fa-check"></i>
+                  <span>CLAIM & APPROVE</span>
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    async function claimPendingJob(dispatchId, btnElement) {
+      if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Claiming...`;
+      }
+
+      try {
+        const response = await fetch(`${window.CONFIG.API_URL}/api/dispatch/${dispatchId}/approve`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.status === 409) {
+          alert('⚠️ Sorry! This request was just claimed by another vehicle owner.');
+          loadPendingRequests();
+          return;
+        }
+
+        if (!response.ok) {
+          alert(data.error || 'Failed to claim request');
+          loadPendingRequests();
+          return;
+        }
+
+        // Success!
+        window.soundAlert.playMessageBeep();
+        alert('🎉 Booking successfully APPROVED & CLAIMED!\n\nAutomated WhatsApp confirmation has been dispatched to the farmer.');
+
+        // Close messages modal if open
+        document.getElementById('messagesModal').classList.add('hidden');
+
+        // Refresh both lists
+        loadPendingRequests();
+        loadMyJobs();
+
+      } catch (err) {
+        alert('Network error while approving: ' + (err.message || 'Check connection'));
+        loadPendingRequests();
+      }
+    }
 
     // PickMe Style Pop-up functions
     function showJobModal(dispatch) {
@@ -334,7 +561,7 @@
       // Show modal
       document.getElementById('jobModal').classList.remove('hidden');
 
-      // Play audio chime continuously
+      // Play 1 regular message notification sound
       window.soundAlert.startAlarm();
 
       // Start countdown
@@ -399,8 +626,9 @@
         document.getElementById('lockedNotice').classList.add('hidden');
         document.getElementById('approvedNotice').classList.remove('hidden');
 
-        // Refresh accepted jobs table
+        // Refresh accepted jobs table and pending requests
         loadMyJobs();
+        loadPendingRequests();
 
         setTimeout(() => {
           closeJobModal();
@@ -522,8 +750,10 @@
       }
     }
 
-    // Initialize history on page load
+    // Initialize history and pending requests on page load
     loadMyJobs();
+    loadPendingRequests();
+    setInterval(loadPendingRequests, 8000);
   </script>
 </body>
 </html>

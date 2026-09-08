@@ -57,27 +57,28 @@ class WhatsAppService {
   }
 
   async initialize() {
+    if (this.isInitializing) {
+      this.log('WhatsApp initialization already in progress, please wait...', 'warn');
+      return;
+    }
+    this.isInitializing = true;
+
     if (this.client) {
       try {
         this.client.removeAllListeners();
         if (this.client.pupBrowser) {
-          const proc = this.client.pupBrowser.process();
-          if (proc && proc.pid) {
-            try {
-              if (process.platform === 'win32') {
-                execSync(`taskkill /PID ${proc.pid} /T /F`, { stdio: 'ignore' });
-              } else {
-                proc.kill('SIGKILL');
-              }
-            } catch (kErr) {}
-          }
+          try {
+            await Promise.race([
+              this.client.pupBrowser.close(),
+              new Promise((_, reject) => setTimeout(reject, 1500))
+            ]);
+          } catch (closeErr) {}
         }
-        await this.client.destroy();
       } catch (e) {}
       this.client = null;
     }
 
-    // Always kill any orphaned background chrome processes tied to wwebjs_auth
+    // Terminate any lingering background chrome processes tied to wwebjs_auth
     killOrphanedWwebjsChrome();
     await new Promise((r) => setTimeout(r, 600));
 
@@ -138,6 +139,7 @@ class WhatsAppService {
     });
 
     this.client.on('qr', async (qr) => {
+      this.isInitializing = false;
       this.status = 'WAITING_FOR_QR_SCAN';
       this.qrRaw = qr;
       this.log('New QR code received. Ready to scan from WhatsApp mobile app.');
@@ -168,6 +170,7 @@ class WhatsAppService {
     });
 
     this.client.on('auth_failure', (msg) => {
+      this.isInitializing = false;
       this.status = 'AUTH_FAILURE';
       this.log(`WhatsApp authentication failed: ${msg}`, 'error');
       if (this.io) {
@@ -176,6 +179,7 @@ class WhatsAppService {
     });
 
     this.client.on('ready', () => {
+      this.isInitializing = false;
       this.status = 'READY';
       this.qrCodeDataUrl = null;
       this.qrRaw = null;
@@ -188,6 +192,7 @@ class WhatsAppService {
     });
 
     this.client.on('disconnected', (reason) => {
+      this.isInitializing = false;
       this.status = 'DISCONNECTED';
       this.clientInfo = null;
       this.qrCodeDataUrl = null;
@@ -207,6 +212,7 @@ class WhatsAppService {
     });
 
     this.client.initialize().catch((err) => {
+      this.isInitializing = false;
       this.status = 'ERROR';
       this.log(`Initialization error: ${err.message}`, 'error');
       if (this.io) {
@@ -221,6 +227,7 @@ class WhatsAppService {
       return;
     }
     this.isDisconnecting = true;
+    this.isInitializing = false;
     this.status = 'DISCONNECTING';
     this.clientInfo = null;
     this.qrCodeDataUrl = null;
@@ -234,26 +241,14 @@ class WhatsAppService {
     if (this.client) {
       try {
         this.client.removeAllListeners();
-      } catch (e) {}
-
-      // Try killing puppeteer browser process explicitly
-      try {
         if (this.client.pupBrowser) {
-          const proc = this.client.pupBrowser.process();
-          if (proc && proc.pid) {
-            try {
-              if (process.platform === 'win32') {
-                execSync(`taskkill /PID ${proc.pid} /T /F`, { stdio: 'ignore' });
-              } else {
-                proc.kill('SIGKILL');
-              }
-            } catch (kErr) {}
-          }
+          try {
+            await Promise.race([
+              this.client.pupBrowser.close(),
+              new Promise((_, reject) => setTimeout(reject, 1500))
+            ]);
+          } catch (closeErr) {}
         }
-      } catch (pErr) {}
-
-      try {
-        await this.client.destroy();
       } catch (e) {}
       this.client = null;
     }
@@ -262,7 +257,7 @@ class WhatsAppService {
     killOrphanedWwebjsChrome();
 
     // 3. Allow Windows to release all file handles
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1200));
 
     // 4. Purge the .wwebjs_auth directory safely
     const authPath = path.resolve(__dirname, '../.wwebjs_auth');
@@ -280,7 +275,7 @@ class WhatsAppService {
       this.io.emit('whatsapp_status', this.getStatus());
     }
 
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 600));
     this.isDisconnecting = false;
 
     // 5. Start fresh WhatsApp client to generate new QR code

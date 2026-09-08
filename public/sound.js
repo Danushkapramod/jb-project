@@ -37,19 +37,20 @@ class SoundAlert {
     }
   }
 
+  playMessageBeep() {
+    // Crisp 2-note message notification chime (like regular WhatsApp / SMS message)
+    this.playBeep(784, 0.09, 'sine'); // G5
+    setTimeout(() => this.playBeep(1046.5, 0.16, 'sine'), 100); // C6
+  }
+
   playJobChime() {
-    // 3-note ascending chime (like a modern notification/dispatch chime)
-    this.playBeep(523.25, 0.12, 'triangle'); // C5
-    setTimeout(() => this.playBeep(659.25, 0.12, 'triangle'), 130); // E5
-    setTimeout(() => this.playBeep(783.99, 0.25, 'triangle'), 260); // G5
+    this.playMessageBeep();
   }
 
   startAlarm() {
-    this.playJobChime();
-    this.stopAlarm(); // clear any previous
-    this.intervalId = setInterval(() => {
-      this.playJobChime();
-    }, 1500);
+    // Play ONLY ONCE like a regular incoming message (no continuous repeating beep)
+    this.stopAlarm();
+    this.playMessageBeep();
   }
 
   stopAlarm() {

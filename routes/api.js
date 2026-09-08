@@ -341,6 +341,28 @@ router.get('/dispatch/my-jobs', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/dispatch/pending - Get active unclaimed dispatches matching the logged-in owner's vehicle type
+router.get('/dispatch/pending', authenticateToken, async (req, res) => {
+  try {
+    const user = await dbAsync.get('SELECT vehicle_type FROM users WHERE id = ?', [req.user.id]);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
+    const pending = await dbAsync.all(
+      `SELECT * FROM dispatches 
+       WHERE status = 'PENDING' AND vehicle_type = ? 
+       ORDER BY created_at DESC LIMIT 30`,
+      [user.vehicle_type]
+    );
+
+    res.json({ success: true, vehicleType: user.vehicle_type, count: pending.length, pending });
+  } catch (err) {
+    console.error('Pending dispatches fetch error:', err);
+    res.status(500).json({ success: false, error: 'Failed to fetch pending requests.' });
+  }
+});
+
 // GET /api/dispatch/all - Get all dispatches (for Admin monitoring)
 router.get('/dispatch/all', async (req, res) => {
   try {
@@ -365,10 +387,12 @@ router.get('/whatsapp/status', (req, res) => {
   res.json(whatsappService.getStatus());
 });
 
-// POST /api/whatsapp/reconnect - Trigger WhatsApp reconnect
+// POST /api/whatsapp/reconnect - Trigger WhatsApp reconnect (non-blocking)
 router.post('/whatsapp/reconnect', (req, res) => {
-  whatsappService.initialize();
-  res.json({ message: 'WhatsApp re-initialization triggered.' });
+  res.json({ success: true, message: 'WhatsApp session restart initiated. Restarting Chromium engine...' });
+  whatsappService.initialize().catch((err) => {
+    console.error('Background reconnect error:', err);
+  });
 });
 
 // POST /api/whatsapp/disconnect - Force logout, purge local session files, and generate a new QR code

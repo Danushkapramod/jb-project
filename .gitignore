@@ -4,3 +4,4 @@ node_modules/
 .env
 database.sqlite
 package-lock.json
+*.zip

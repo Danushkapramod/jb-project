@@ -1,60 +1,36 @@
 # Production Dockerfile for Render deployment
 FROM node:20-slim
 
-# Install latest Chromium & essential dependencies for Puppeteer
+# Prevent debconf from attempting interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Chromium, fonts, and native compilation tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libc6 \
-    libcairo2 \
-    libcups2 \
-    libdbus-1-3 \
-    libexpat1 \
-    libfontconfig1 \
-    libgbm1 \
-    libgcc1 \
-    libglib2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libstdc++6 \
-    libx11-6 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    xdg-utils \
     ca-certificates \
+    python3 \
+    make \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Tell Puppeteer to use the installed Chromium instead of downloading
+# Instruct Puppeteer to use the installed Chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 WORKDIR /app
 
-# Install app dependencies
+# Install dependencies
 COPY package*.json ./
-RUN npm install --production
+RUN npm install --omit=dev
 
-# Copy application files
+# Copy application source
 COPY . .
 
-# Set default port (Render will override with its own PORT env var)
-ENV PORT=3000
-EXPOSE 3000
+# Ensure directory for WhatsApp session auth exists
+RUN mkdir -p .wwebjs_auth
+
+ENV PORT=10000
+EXPOSE 10000
 
 CMD ["node", "server.js"]

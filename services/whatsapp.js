@@ -1,6 +1,23 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const QRCode = require('qrcode');
 const path = require('path');
+const fs = require('fs');
+
+function getChromiumExecutablePath() {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  const candidates = [
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome'
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return undefined; // fallback to Puppeteer bundled
+}
 
 class WhatsAppService {
   constructor() {
@@ -42,13 +59,18 @@ class WhatsAppService {
       this.io.emit('whatsapp_status', this.getStatus());
     }
 
+    const execPath = getChromiumExecutablePath();
+    if (execPath) {
+      this.log(`Using Chromium executable: ${execPath}`);
+    }
+
     this.client = new Client({
       authStrategy: new LocalAuth({
         dataPath: path.resolve(__dirname, '../.wwebjs_auth')
       }),
       puppeteer: {
         headless: true,
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        executablePath: execPath,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',

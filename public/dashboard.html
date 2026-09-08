@@ -33,55 +33,56 @@
 
   <!-- Top Navigation -->
   <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <a href="/" class="flex items-center space-x-2 text-white hover:text-emerald-400 transition">
-          <span class="text-2xl">🚜</span>
-          <span class="font-bold text-lg tracking-tight">AgriDispatch</span>
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+      <div class="flex items-center space-x-2 min-w-0">
+        <a href="/" class="flex items-center space-x-1.5 text-white hover:text-emerald-400 transition truncate">
+          <span class="text-xl sm:text-2xl">🚜</span>
+          <span class="font-bold text-base sm:text-lg tracking-tight truncate">AgriDispatch</span>
         </a>
-        <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">Driver Console</span>
+        <span class="text-[10px] sm:text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 hidden md:inline">Driver Console</span>
       </div>
 
-      <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
         <!-- Messages / Active Requests Icon Button -->
         <button id="messagesBtn" onclick="toggleMessagesModal()" title="View Unclaimed Requests"
-          class="relative flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition">
-          <i class="fa-solid fa-bell text-sm text-amber-400"></i>
+          class="relative flex items-center space-x-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition">
+          <i class="fa-solid fa-bell text-xs sm:text-sm text-amber-400"></i>
           <span class="text-xs font-bold hidden sm:inline">Requests</span>
           <span id="msgBadge" class="hidden bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm animate-pulse">0</span>
         </button>
 
         <!-- Duty Status Switch -->
         <button id="dutyToggleBtn" onclick="toggleDuty()"
-          class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-bold transition shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white">
-          <span id="dutyDot" class="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></span>
+          class="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold transition shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white">
+          <span id="dutyDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white animate-pulse"></span>
           <span id="dutyText">ONLINE</span>
         </button>
 
         <!-- Logout -->
-        <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-red-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg border border-slate-700 transition">
-          <i class="fa-solid fa-right-from-bracket mr-1"></i> Logout
+        <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-red-800 text-slate-300 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-700 transition flex items-center">
+          <i class="fa-solid fa-right-from-bracket sm:mr-1"></i>
+          <span class="hidden sm:inline">Logout</span>
         </button>
       </div>
     </div>
   </header>
 
   <!-- Main Content -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 flex-grow w-full">
 
     <!-- Driver Info Card -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div class="flex items-center space-x-4">
-          <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-2xl font-bold border border-emerald-200 shadow-inner">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-5 sm:mb-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+        <div class="flex items-center space-x-3 sm:space-x-4 min-w-0">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-2xl font-bold border border-emerald-200 shadow-inner shrink-0">
             <span id="vehicleEmoji">🚜</span>
           </div>
-          <div>
-            <div class="flex items-center space-x-2">
-              <h1 id="driverName" class="text-xl font-bold text-slate-900">Loading...</h1>
-              <span id="vehicleTypeBadge" class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200">...</span>
+          <div class="min-w-0">
+            <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+              <h1 id="driverName" class="text-lg sm:text-xl font-bold text-slate-900 truncate">Loading...</h1>
+              <span id="vehicleTypeBadge" class="bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200">...</span>
             </div>
-            <p class="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+            <p class="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-1">
               <span><i class="fa-solid fa-id-card text-slate-400 mr-1"></i> Reg: <strong id="vehicleRegNo" class="text-slate-700">...</strong></span>
               <span><i class="fa-brands fa-whatsapp text-emerald-600 mr-1"></i> Phone: <strong id="driverPhone" class="text-slate-700">...</strong></span>
               <span><i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> Base: <strong id="driverLocation" class="text-slate-700">...</strong></span>
@@ -89,10 +90,10 @@
           </div>
         </div>
 
-        <div class="flex items-center space-x-3 bg-slate-50 p-3 rounded-xl border border-slate-200 w-full sm:w-auto">
-          <div class="text-right">
-            <div class="text-xs text-slate-500">Live Dispatch Radar</div>
-            <div id="radarStatusText" class="text-xs font-bold text-emerald-600 flex items-center justify-end space-x-1">
+        <div class="flex items-center space-x-3 bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-200 w-full sm:w-auto justify-between sm:justify-end">
+          <div class="text-left sm:text-right">
+            <div class="text-[11px] text-slate-500">Live Dispatch Radar</div>
+            <div id="radarStatusText" class="text-xs font-bold text-emerald-600 flex items-center sm:justify-end space-x-1">
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
               <span>Scanning for jobs</span>
             </div>
@@ -101,46 +102,41 @@
       </div>
     </div>
 
-    <!-- Active Listening Banner -->
-    <div id="dutyBanner" class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-md mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center space-x-4">
-        <div class="p-3 bg-white/20 rounded-xl">
-          <i class="fa-solid fa-satellite-dish text-2xl bounce-subtle"></i>
-        </div>
-        <div>
-          <h2 class="text-lg font-bold">You are ON DUTY and ready for dispatches</h2>
-          <p class="text-xs text-emerald-100">Keep this tab open. When a farm field requests your vehicle type, your phone/computer will alert you with incoming requests.</p>
-        </div>
+    <!-- Compact Online Status Strip (Replaced bulky banner & removed test sound button) -->
+    <div id="dutyBanner" class="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl px-4 py-2.5 mb-6 flex items-center justify-between transition shadow-xs">
+      <div class="flex items-center space-x-2.5 text-xs">
+        <span id="dutyIndicatorDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="dutyBannerText"><strong>ONLINE:</strong> Ready and scanning for <span id="dutyVehicleTypeName" class="font-bold underline decoration-emerald-400">...</span> requests</span>
       </div>
-      <div class="flex items-center space-x-2">
-        <button onclick="testAudio()" class="text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition font-medium border border-white/30">
-          <i class="fa-solid fa-volume-high mr-1"></i> Test Sound
-        </button>
-      </div>
+      <span class="text-[11px] text-emerald-700 hidden sm:flex items-center space-x-1 font-semibold">
+        <i class="fa-solid fa-satellite-dish"></i>
+        <span>Live Radar Active</span>
+      </span>
     </div>
 
     <!-- Available Pending Requests (Claimable Now) -->
-    <div id="pendingSection" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-      <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-gradient-to-r from-amber-50 to-orange-50">
+    <div id="pendingSection" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6 sm:mb-8">
+      <div class="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-amber-50 to-orange-50">
         <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+          <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
             <i class="fa-solid fa-bell"></i>
           </div>
           <div>
-            <div class="flex items-center space-x-2">
-              <h3 class="text-base font-bold text-slate-900">Unclaimed Vehicle Requests</h3>
+            <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+              <h3 class="text-sm sm:text-base font-bold text-slate-900">Unclaimed Vehicle Requests</h3>
               <span id="pendingCountBadge" class="bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-slate-200">0 Available</span>
+              <span id="dismissedNotice" class="hidden text-[11px] text-slate-500"></span>
             </div>
-            <p class="text-xs text-slate-600">Requests already placed for your vehicle type that have not been accepted yet. Claim them before other drivers!</p>
+            <p class="text-xs text-slate-600">Requests already placed for your vehicle type that have not been accepted yet.</p>
           </div>
         </div>
-        <button onclick="loadPendingRequests()" class="text-xs text-amber-900 hover:text-amber-950 font-bold flex items-center space-x-1.5 bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm transition">
+        <button onclick="loadPendingRequests()" class="text-xs text-amber-900 hover:text-amber-950 font-bold flex items-center space-x-1.5 bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm transition self-end sm:self-auto">
           <i class="fa-solid fa-arrows-rotate text-amber-600"></i>
           <span>Refresh Requests</span>
         </button>
       </div>
 
-      <div id="pendingRequestsContainer" class="p-6">
+      <div id="pendingRequestsContainer" class="p-4 sm:p-6">
         <div class="text-center py-6 text-slate-400 text-xs">
           <i class="fa-solid fa-spinner fa-spin text-lg mb-2 block text-amber-500"></i>
           Scanning for available bookings...
@@ -150,18 +146,19 @@
 
     <!-- Accepted Jobs History -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+      <div class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center">
         <div>
           <h3 class="text-base font-bold text-slate-800">My Accepted Bookings</h3>
           <p class="text-xs text-slate-500">History of agricultural dispatch requests you have approved</p>
         </div>
-        <button onclick="loadMyJobs()" class="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center space-x-1">
+        <button onclick="loadMyJobs()" class="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center space-x-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 transition">
           <i class="fa-solid fa-arrows-rotate"></i>
           <span>Refresh</span>
         </button>
       </div>
 
-      <div class="overflow-x-auto">
+      <!-- Desktop View: Full Table with Details Action -->
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-left text-sm text-slate-600">
           <thead class="bg-slate-50 text-xs uppercase text-slate-500 border-b border-slate-200">
             <tr>
@@ -171,17 +168,26 @@
               <th class="px-6 py-3">Destination Field</th>
               <th class="px-6 py-3">Notes</th>
               <th class="px-6 py-3">Status</th>
+              <th class="px-6 py-3 text-right">Action</th>
             </tr>
           </thead>
           <tbody id="jobsTableBody" class="divide-y divide-slate-100">
             <tr>
-              <td colspan="6" class="px-6 py-8 text-center text-slate-400 text-xs">
+              <td colspan="7" class="px-6 py-8 text-center text-slate-400 text-xs">
                 <i class="fa-solid fa-spinner fa-spin text-lg mb-2 block"></i>
                 Loading your bookings...
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Mobile View: Responsive Booking Cards with Details Button -->
+      <div id="jobsMobileCards" class="block md:hidden divide-y divide-slate-100 p-4 space-y-3">
+        <div class="text-center py-6 text-slate-400 text-xs">
+          <i class="fa-solid fa-spinner fa-spin text-lg mb-2 block"></i>
+          Loading your bookings...
+        </div>
       </div>
     </div>
 
@@ -294,8 +300,112 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <div id="modalPendingList" class="p-6 max-h-[70vh] overflow-y-auto space-y-4">
+      <div id="modalPendingList" class="p-4 sm:p-6 max-h-[70vh] overflow-y-auto space-y-3">
         <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- ACCEPTED BOOKING FULL DETAILS POPUP MODAL -->
+  <!-- ======================================================== -->
+  <div id="bookingDetailsModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden transform transition-all animate-in fade-in duration-150">
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 bg-gradient-to-r from-emerald-800 to-teal-900 text-white flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-xl">
+            <span id="detailVehicleEmoji">🚜</span>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="font-bold text-base">Booking Details</h3>
+              <span id="detailStatusBadge" class="bg-emerald-400/30 text-emerald-200 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wide border border-emerald-300/40">APPROVED</span>
+            </div>
+            <p id="detailRequestId" class="font-mono text-xs text-emerald-200">REQ-...</p>
+          </div>
+        </div>
+        <button onclick="closeBookingDetailsModal()" class="text-white/70 hover:text-white text-xl p-1.5 rounded-xl hover:bg-white/10 transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-4 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+        <!-- Field Destination Card with Maps link -->
+        <div class="bg-slate-50 p-3.5 sm:p-4 rounded-2xl border border-slate-200 space-y-2">
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Destination Field / Plot</div>
+          <div id="detailLocation" class="text-sm font-bold text-slate-900">...</div>
+          <a id="detailMapsLink" href="#" target="_blank"
+            class="inline-flex items-center space-x-1.5 text-xs text-emerald-700 hover:text-emerald-800 font-semibold bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs transition">
+            <i class="fa-solid fa-map-location-dot text-rose-500"></i>
+            <span>Open in Google Maps</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-0.5 text-slate-400"></i>
+          </a>
+        </div>
+
+        <!-- Farmer Contact Card with WhatsApp & Call buttons -->
+        <div class="bg-emerald-50/70 p-3.5 sm:p-4 rounded-2xl border border-emerald-200 space-y-3">
+          <div class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider flex justify-between items-center flex-wrap gap-1">
+            <span>Farmer / Requester Contact</span>
+            <span class="text-[10px] text-emerald-700 font-medium">WhatsApp Notification Sent ✅</span>
+          </div>
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div class="text-[11px] text-slate-500">Phone Number:</div>
+              <div id="detailFarmerPhone" class="text-base font-extrabold font-mono text-slate-900">07...</div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <a id="detailWhatsAppBtn" href="#" target="_blank"
+                class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-3.5 rounded-xl text-xs flex items-center space-x-1.5 shadow-sm transition">
+                <i class="fa-brands fa-whatsapp text-sm"></i>
+                <span>Chat</span>
+              </a>
+              <a id="detailCallBtn" href="#"
+                class="bg-white hover:bg-slate-100 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs border border-slate-200 shadow-xs transition flex items-center space-x-1">
+                <i class="fa-solid fa-phone text-xs text-slate-500"></i>
+                <span>Call</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule & Dispatch Info Grid -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-slate-50 p-3 sm:p-3.5 rounded-2xl border border-slate-200">
+            <span class="text-slate-400 block text-[11px] font-medium">Scheduled Work Date</span>
+            <span id="detailDate" class="font-bold text-slate-800 text-sm mt-0.5 block">2026-09-12</span>
+          </div>
+          <div class="bg-slate-50 p-3 sm:p-3.5 rounded-2xl border border-slate-200">
+            <span class="text-slate-400 block text-[11px] font-medium">Vehicle Required</span>
+            <span id="detailVehicleType" class="font-bold text-emerald-800 text-sm mt-0.5 block">Combine Harvester</span>
+          </div>
+        </div>
+
+        <!-- Assigned Vehicle Details -->
+        <div class="bg-slate-50 p-3 sm:p-3.5 rounded-2xl border border-slate-200 space-y-1">
+          <span class="text-slate-400 block text-[11px] font-medium">Assigned Vehicle Registration</span>
+          <div class="flex justify-between items-center text-xs flex-wrap gap-1">
+            <span>Plate No: <strong id="detailRegPlate" class="text-slate-800">...</strong></span>
+            <span>Driver: <strong id="detailDriverName" class="text-slate-800">...</strong></span>
+          </div>
+        </div>
+
+        <!-- Special Instructions / Notes -->
+        <div class="bg-slate-50 p-3 sm:p-3.5 rounded-2xl border border-slate-200">
+          <span class="text-slate-400 block text-[11px] font-medium">Farmer Special Instructions</span>
+          <p id="detailNotes" class="text-slate-700 mt-1 bg-white p-2.5 rounded-xl border border-slate-200 italic">
+            None provided.
+          </p>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="closeBookingDetailsModal()"
+          class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-5 rounded-xl text-xs transition">
+          Close
+        </button>
       </div>
     </div>
   </div>
@@ -384,9 +494,35 @@
     });
 
     // -------------------------------------------------------------
-    // PENDING REQUESTS / MESSAGES HANDLING
+    // PENDING REQUESTS / MESSAGES HANDLING & DISMISSAL
     // -------------------------------------------------------------
     let pendingRequests = [];
+
+    function getDismissedJobIds() {
+      try {
+        const stored = localStorage.getItem(`agri_dismissed_${currentUser.id}`);
+        return stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function dismissJob(jobId, event) {
+      if (event) {
+        event.stopPropagation();
+      }
+      const dismissed = getDismissedJobIds();
+      if (!dismissed.includes(jobId)) {
+        dismissed.push(jobId);
+        localStorage.setItem(`agri_dismissed_${currentUser.id}`, JSON.stringify(dismissed));
+      }
+      updatePendingUI();
+    }
+
+    function clearDismissed() {
+      localStorage.removeItem(`agri_dismissed_${currentUser.id}`);
+      updatePendingUI();
+    }
 
     function toggleMessagesModal() {
       const modal = document.getElementById('messagesModal');
@@ -409,7 +545,9 @@
     }
 
     function updatePendingUI() {
-      const count = pendingRequests.length;
+      const dismissed = getDismissedJobIds();
+      const activePending = pendingRequests.filter(j => !dismissed.includes(j.id));
+      const count = activePending.length;
       const msgBadge = document.getElementById('msgBadge');
       const countBadge = document.getElementById('pendingCountBadge');
 
@@ -424,14 +562,26 @@
         countBadge.className = 'bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-slate-200';
       }
 
-      renderPendingList(document.getElementById('pendingRequestsContainer'), false);
-      renderPendingList(document.getElementById('modalPendingList'), true);
+      // Show notice if any jobs were dismissed
+      const dismissedCount = pendingRequests.length - activePending.length;
+      const dismissedNotice = document.getElementById('dismissedNotice');
+      if (dismissedNotice) {
+        if (dismissedCount > 0) {
+          dismissedNotice.innerHTML = `(${dismissedCount} hidden · <button onclick="clearDismissed()" class="underline text-emerald-700 font-bold hover:text-emerald-800">Show all</button>)`;
+          dismissedNotice.classList.remove('hidden');
+        } else {
+          dismissedNotice.classList.add('hidden');
+        }
+      }
+
+      renderPendingList(document.getElementById('pendingRequestsContainer'), activePending, false);
+      renderPendingList(document.getElementById('modalPendingList'), activePending, true);
     }
 
-    function renderPendingList(container, isModal = false) {
+    function renderPendingList(container, list, isModal = false) {
       if (!container) return;
 
-      if (pendingRequests.length === 0) {
+      if (!list || list.length === 0) {
         container.innerHTML = `
           <div class="text-center py-8 text-slate-400 text-xs">
             <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xl mx-auto mb-2">
@@ -444,45 +594,56 @@
         return;
       }
 
-      const gridClass = isModal ? 'space-y-3' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+      const gridClass = isModal ? 'space-y-3' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4';
 
       container.innerHTML = `
         <div class="${gridClass}">
-          ${pendingRequests.map(job => `
-            <div class="bg-amber-50/70 hover:bg-amber-50 border-2 border-amber-200 hover:border-amber-400 rounded-2xl p-4 transition-all shadow-sm flex flex-col justify-between">
+          ${list.map(job => `
+            <div class="bg-amber-50/70 hover:bg-amber-50 border-2 border-amber-200 hover:border-amber-400 rounded-2xl p-4 transition-all shadow-sm flex flex-col justify-between relative group">
               <div>
                 <div class="flex justify-between items-start mb-2.5">
                   <span class="font-mono text-xs font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md">${job.id}</span>
-                  <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    ${emojis[job.vehicle_type] || '🚜'} ${job.vehicle_type}
-                  </span>
+                  <div class="flex items-center space-x-1.5">
+                    <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                      ${emojis[job.vehicle_type] || '🚜'} ${job.vehicle_type}
+                    </span>
+                    <button onclick="dismissJob('${job.id}', event)" title="Dismiss/Remove from my dashboard"
+                      class="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition" aria-label="Dismiss">
+                      <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                  </div>
                 </div>
                 <div class="space-y-1.5 text-xs text-slate-700 mb-3">
                   <div class="flex items-start space-x-1.5">
-                    <i class="fa-solid fa-location-dot text-rose-500 w-4 mt-0.5"></i>
+                    <i class="fa-solid fa-location-dot text-rose-500 w-4 mt-0.5 shrink-0"></i>
                     <strong class="text-slate-900 line-clamp-1">${job.location}</strong>
                   </div>
                   <div class="flex items-center space-x-1.5">
-                    <i class="fa-regular fa-calendar text-slate-400 w-4"></i>
+                    <i class="fa-regular fa-calendar text-slate-400 w-4 shrink-0"></i>
                     <span>Work Date: <strong class="text-slate-800">${job.date}</strong></span>
                   </div>
                   <div class="flex items-center space-x-1.5">
-                    <i class="fa-brands fa-whatsapp text-emerald-600 w-4"></i>
-                    <span>Farmer: <strong class="text-slate-800">${job.requester_phone}</strong></span>
+                    <i class="fa-brands fa-whatsapp text-emerald-600 w-4 shrink-0"></i>
+                    <span>Farmer: <strong class="text-slate-800 font-mono">${job.requester_phone}</strong></span>
                   </div>
                   ${job.notes ? `
-                    <div class="mt-2 text-[11px] text-slate-600 bg-white/90 p-2 rounded-lg border border-amber-100 italic">
+                    <div class="mt-2 text-[11px] text-slate-600 bg-white/90 p-2 rounded-lg border border-amber-100 italic line-clamp-2">
                       "${job.notes}"
                     </div>
                   ` : ''}
                 </div>
               </div>
 
-              <div class="pt-2 border-t border-amber-200/60">
+              <div class="pt-2.5 border-t border-amber-200/60 flex items-center space-x-2">
                 <button onclick="claimPendingJob('${job.id}', this)"
-                  class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2.5 px-3 rounded-xl shadow-md hover:shadow-emerald-600/30 transition flex items-center justify-center space-x-1.5">
+                  class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2.5 px-3 rounded-xl shadow-sm transition flex items-center justify-center space-x-1.5">
                   <i class="fa-solid fa-check"></i>
                   <span>CLAIM & APPROVE</span>
+                </button>
+                <button onclick="dismissJob('${job.id}', event)" title="Remove from my dashboard"
+                  class="px-2.5 py-2.5 rounded-xl border border-slate-200 hover:border-rose-300 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition text-xs flex items-center space-x-1">
+                  <i class="fa-solid fa-eye-slash text-xs"></i>
+                  <span class="hidden sm:inline">Dismiss</span>
                 </button>
               </div>
             </div>
@@ -539,6 +700,10 @@
 
     // PickMe Style Pop-up functions
     function showJobModal(dispatch) {
+      // Don't show if dismissed
+      const dismissed = getDismissedJobIds();
+      if (dismissed.includes(dispatch.id)) return;
+
       currentJob = dispatch;
       countdownSeconds = 60;
 
@@ -646,6 +811,9 @@
       window.soundAlert.stopAlarm();
       if (countdownInterval) clearInterval(countdownInterval);
 
+      // Dismiss this job from user's view when denied
+      dismissJob(currentJob.id);
+
       fetch(`${window.CONFIG.API_URL}/api/dispatch/${currentJob.id}/deny`, {
         method: 'POST',
         headers: {
@@ -682,26 +850,30 @@
       const dutyText = document.getElementById('dutyText');
       const radarStatusText = document.getElementById('radarStatusText');
       const dutyBanner = document.getElementById('dutyBanner');
+      const dutyIndicatorDot = document.getElementById('dutyIndicatorDot');
+      const dutyBannerText = document.getElementById('dutyBannerText');
 
       if (isOnline) {
-        dutyBtn.className = "flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-bold transition shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white";
-        dutyDot.className = "w-2.5 h-2.5 rounded-full bg-white animate-pulse";
-        dutyText.textContent = "ONLINE / ON DUTY";
+        dutyBtn.className = "flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold transition shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white";
+        dutyDot.className = "w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white animate-pulse";
+        dutyText.textContent = "ONLINE";
         radarStatusText.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span><span>Scanning for jobs</span>`;
-        radarStatusText.className = "text-xs font-bold text-emerald-600 flex items-center justify-end space-x-1";
-        dutyBanner.classList.remove('opacity-50');
-      } else {
-        dutyBtn.className = "flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-bold transition shadow-sm bg-slate-600 hover:bg-slate-500 text-slate-200";
-        dutyDot.className = "w-2.5 h-2.5 rounded-full bg-slate-400";
-        dutyText.textContent = "OFFLINE / PAUSED";
-        radarStatusText.innerHTML = `<span>Paused</span>`;
-        radarStatusText.className = "text-xs font-bold text-slate-400 flex items-center justify-end";
-        dutyBanner.classList.add('opacity-50');
-      }
-    }
+        radarStatusText.className = "text-xs font-bold text-emerald-600 flex items-center sm:justify-end space-x-1";
 
-    function testAudio() {
-      window.soundAlert.playJobChime();
+        dutyBanner.className = "bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl px-4 py-2.5 mb-6 flex items-center justify-between transition shadow-xs";
+        if (dutyIndicatorDot) dutyIndicatorDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+        if (dutyBannerText) dutyBannerText.innerHTML = `<strong>ONLINE:</strong> Ready and scanning for <span class="font-bold underline decoration-emerald-400">${currentUser.vehicle_type}</span> requests`;
+      } else {
+        dutyBtn.className = "flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold transition shadow-sm bg-slate-600 hover:bg-slate-500 text-slate-200";
+        dutyDot.className = "w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-slate-400";
+        dutyText.textContent = "OFFLINE";
+        radarStatusText.innerHTML = `<span>Paused</span>`;
+        radarStatusText.className = "text-xs font-bold text-slate-400 flex items-center sm:justify-end";
+
+        dutyBanner.className = "bg-slate-100 border border-slate-300 text-slate-600 rounded-xl px-4 py-2.5 mb-6 flex items-center justify-between transition shadow-xs";
+        if (dutyIndicatorDot) dutyIndicatorDot.className = "w-2.5 h-2.5 rounded-full bg-slate-400";
+        if (dutyBannerText) dutyBannerText.innerHTML = `<strong>OFFLINE:</strong> Duty paused. You will not receive new alerts.`;
+      }
     }
 
     function logout() {
@@ -710,9 +882,49 @@
       window.location.href = '/login.html';
     }
 
-    // Load History
+    // -------------------------------------------------------------
+    // ACCEPTED JOBS & FULL DETAILS MODAL
+    // -------------------------------------------------------------
+    let myAcceptedJobs = [];
+
+    function viewJobDetails(jobId) {
+      const job = myAcceptedJobs.find(j => j.id === jobId);
+      if (!job) return;
+
+      document.getElementById('detailRequestId').textContent = job.id;
+      document.getElementById('detailLocation').textContent = job.location;
+      document.getElementById('detailDate').textContent = job.date;
+      document.getElementById('detailVehicleType').textContent = job.vehicle_type || currentUser.vehicle_type;
+      document.getElementById('detailFarmerPhone').textContent = job.requester_phone;
+      document.getElementById('detailRegPlate').textContent = currentUser.vehicle_reg_no;
+      document.getElementById('detailDriverName').textContent = currentUser.name;
+      document.getElementById('detailNotes').textContent = job.notes || 'No extra notes provided by the farmer.';
+      document.getElementById('detailVehicleEmoji').textContent = emojis[job.vehicle_type || currentUser.vehicle_type] || '🚜';
+
+      // Set Google Maps navigation search link
+      const mapsLink = document.getElementById('detailMapsLink');
+      mapsLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
+
+      // Set WhatsApp direct chat link with pre-filled message
+      let cleanPhone = (job.requester_phone || '').replace(/[^0-9]/g, '');
+      if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
+        cleanPhone = '94' + cleanPhone.slice(1);
+      }
+      const waText = encodeURIComponent(`Hello! I am ${currentUser.name} (${currentUser.vehicle_type} driver, Reg: ${currentUser.vehicle_reg_no}). I have approved and claimed your booking ${job.id} for ${job.date} at ${job.location}.`);
+      document.getElementById('detailWhatsAppBtn').href = `https://wa.me/${cleanPhone}?text=${waText}`;
+      document.getElementById('detailCallBtn').href = `tel:${job.requester_phone}`;
+
+      document.getElementById('bookingDetailsModal').classList.remove('hidden');
+    }
+
+    function closeBookingDetailsModal() {
+      document.getElementById('bookingDetailsModal').classList.add('hidden');
+    }
+
+    // Load History (Desktop Table + Mobile Responsive Cards)
     async function loadMyJobs() {
       const tbody = document.getElementById('jobsTableBody');
+      const mobileContainer = document.getElementById('jobsMobileCards');
       try {
         const res = await fetch(`${window.CONFIG.API_URL}/api/dispatch/my-jobs`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -720,34 +932,83 @@
         const data = await res.json();
 
         if (!data.jobs || data.jobs.length === 0) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="6" class="px-6 py-8 text-center text-slate-400 text-xs">
-                No approved bookings yet. Keep your dashboard open to receive incoming requests!
-              </td>
-            </tr>
+          const emptyHtml = `
+            <div class="py-8 text-center text-slate-400 text-xs">
+              <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xl mx-auto mb-2">
+                <i class="fa-solid fa-clipboard-list"></i>
+              </div>
+              <p class="font-bold text-slate-600">No approved bookings yet</p>
+              <p class="text-slate-400 mt-1">When you claim a request, its full booking details and farmer contact will appear here.</p>
+            </div>
           `;
+          if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-8">${emptyHtml}</td></tr>`;
+          if (mobileContainer) mobileContainer.innerHTML = emptyHtml;
           return;
         }
 
-        tbody.innerHTML = data.jobs.map(j => `
-          <tr class="hover:bg-slate-50 transition">
-            <td class="px-6 py-4 font-mono text-xs font-bold text-emerald-800">${j.id}</td>
-            <td class="px-6 py-4 font-semibold text-slate-700">${j.requester_phone}</td>
-            <td class="px-6 py-4">${j.date}</td>
-            <td class="px-6 py-4 font-medium text-slate-800">${j.location}</td>
-            <td class="px-6 py-4 text-xs text-slate-500 max-w-xs truncate">${j.notes || '-'}</td>
-            <td class="px-6 py-4">
-              <span class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200">
-                APPROVED
-              </span>
-            </td>
-          </tr>
-        `).join('');
+        // Cache jobs in variable for fast details lookup
+        myAcceptedJobs = data.jobs;
+
+        // Render Desktop Table
+        if (tbody) {
+          tbody.innerHTML = data.jobs.map(j => `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="px-6 py-4 font-mono text-xs font-bold text-emerald-800">${j.id}</td>
+              <td class="px-6 py-4 font-semibold text-slate-700 font-mono text-xs">${j.requester_phone}</td>
+              <td class="px-6 py-4 text-xs">${j.date}</td>
+              <td class="px-6 py-4 font-medium text-slate-800 text-xs truncate max-w-xs">${j.location}</td>
+              <td class="px-6 py-4 text-xs text-slate-500 max-w-xs truncate">${j.notes || '-'}</td>
+              <td class="px-6 py-4">
+                <span class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200">
+                  APPROVED
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button onclick="viewJobDetails('${j.id}')"
+                  class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold px-3 py-1.5 rounded-xl text-xs border border-emerald-200 transition inline-flex items-center space-x-1.5 shadow-xs">
+                  <i class="fa-solid fa-eye text-emerald-600"></i>
+                  <span>Details</span>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        // Render Mobile Cards
+        if (mobileContainer) {
+          mobileContainer.innerHTML = data.jobs.map(j => `
+            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2.5">
+              <div class="flex justify-between items-start">
+                <span class="font-mono text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">${j.id}</span>
+                <span class="bg-green-100 text-green-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-green-200">APPROVED</span>
+              </div>
+              <div class="text-xs text-slate-700 space-y-1">
+                <div><i class="fa-solid fa-location-dot text-rose-500 w-4"></i> <strong class="text-slate-900">${j.location}</strong></div>
+                <div><i class="fa-regular fa-calendar text-slate-400 w-4"></i> Work Date: <span class="font-bold text-slate-800">${j.date}</span></div>
+                <div><i class="fa-brands fa-whatsapp text-emerald-600 w-4"></i> Farmer: <span class="font-bold text-slate-800 font-mono">${j.requester_phone}</span></div>
+              </div>
+              <div class="pt-2 border-t border-slate-200">
+                <button onclick="viewJobDetails('${j.id}')"
+                  class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-xs">
+                  <i class="fa-solid fa-circle-info"></i>
+                  <span>View Full Details</span>
+                </button>
+              </div>
+            </div>
+          `).join('');
+        }
 
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500 text-xs">Failed to load bookings</td></tr>`;
+        const errHtml = `<div class="p-4 text-center text-red-500 text-xs">Failed to load bookings</div>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7">${errHtml}</td></tr>`;
+        if (mobileContainer) mobileContainer.innerHTML = errHtml;
       }
+    }
+
+    // Initialize vehicle type label on duty strip
+    const dutyVehicleTypeName = document.getElementById('dutyVehicleTypeName');
+    if (dutyVehicleTypeName) {
+      dutyVehicleTypeName.textContent = currentUser.vehicle_type;
     }
 
     // Initialize history and pending requests on page load

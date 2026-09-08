@@ -300,25 +300,22 @@ router.post('/dispatch/:id/approve', authenticateToken, async (req, res) => {
       });
     }
 
-    // 6. Send organized WhatsApp confirmation message to the requester (safe handling)
-    let whatsappResult = null;
-    try {
-      whatsappResult = await whatsappService.sendBookingConfirmation(
-        dispatch.requester_phone,
-        owner,
-        dispatch
-      );
-    } catch (waErr) {
+    // 6. Send organized WhatsApp confirmation message to the requester in background
+    whatsappService.sendBookingConfirmation(
+      dispatch.requester_phone,
+      owner,
+      dispatch
+    ).then((result) => {
+      console.log('WhatsApp booking confirmation result:', result);
+    }).catch((waErr) => {
       console.error('WhatsApp dispatch warning:', waErr.message);
-      whatsappResult = { success: false, warning: waErr.message };
-    }
+    });
 
     res.json({
       success: true,
       message: 'Job request approved! Requester has been notified via WhatsApp.',
       dispatchId,
-      owner,
-      whatsappResult
+      owner
     });
   } catch (err) {
     console.error('Approval error:', err);

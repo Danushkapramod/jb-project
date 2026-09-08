@@ -228,9 +228,32 @@ class WhatsAppService {
 
     try {
       this.log(`Sending WhatsApp confirmation to ${formattedNumber}...`);
-      const sent = await this.client.sendMessage(formattedNumber, message);
-      this.log(`WhatsApp message delivered successfully to ${formattedNumber}`, 'success');
-      return { success: true, messageId: sent.id._serialized, messageContent: message };
+
+      // Determine recipient JID
+      let targetJid = formattedNumber;
+      try {
+        const cleanDigits = formattedNumber.replace(/@c\.us$/, '');
+        const numberId = await Promise.race([
+          this.client.getNumberId(cleanDigits),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout resolving number')), 4000))
+        ]);
+        if (numberId && numberId._serialized) {
+          targetJid = numberId._serialized;
+        } else if (numberId === null) {
+          this.log(`Notice: ${formattedNumber} might not be registered on WhatsApp. Attempting direct send...`, 'warn');
+        }
+      } catch (checkErr) {
+        // Fall back to targetJid
+      }
+
+      // Send with a 15-second safety timeout so it never hangs indefinitely
+      const sent = await Promise.race([
+        this.client.sendMessage(targetJid, message),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('WhatsApp message delivery timed out after 15s')), 15000))
+      ]);
+
+      this.log(`WhatsApp message delivered successfully to ${targetJid}`, 'success');
+      return { success: true, messageId: sent && sent.id ? sent.id._serialized : 'sent', messageContent: message };
     } catch (err) {
       this.log(`Failed to send WhatsApp message to ${formattedNumber}: ${err.message}`, 'error');
       return { success: false, error: err.message, messageContent: message };

@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
+    "tunnel": "npx cloudflared tunnel --protocol http2 --url http://127.0.0.1:3000",
     "build": "echo 'Static build ready'",
     "test": "node test_system.js"
   },

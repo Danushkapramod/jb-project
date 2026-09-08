@@ -1,0 +1,8 @@
+node_modules
+.wwebjs_auth
+.wwebjs_cache
+*.sqlite
+*.log
+.git
+.env
+public.zip

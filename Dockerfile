@@ -4,7 +4,7 @@ FROM node:20-slim
 # Prevent debconf from attempting interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Chromium, fonts, and native compilation tools
+# Install Chromium, fonts, and native compilation tools (python3, make, g++)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
@@ -20,9 +20,9 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies and build sqlite3 from source for the container's glibc
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm install --omit=dev && npm rebuild sqlite3 --build-from-source
 
 # Copy application source
 COPY . .

@@ -296,6 +296,15 @@
     // Listen for locking event (when another driver accepts first)
     socket.on('job_locked', (data) => {
       console.log('Job locked event:', data);
+      
+      // Ignore if this user was the one who approved it
+      if (data.approvedByUserId && currentUser && Number(data.approvedByUserId) === Number(currentUser.id)) {
+        return;
+      }
+      if (data.approvedBy && currentUser && currentUser.name && data.approvedBy.trim().toLowerCase() === currentUser.name.trim().toLowerCase()) {
+        return;
+      }
+
       if (currentJob && currentJob.id === data.dispatchId) {
         handleJobLockedByOther(data.approvedBy);
       }
@@ -374,7 +383,7 @@
 
         if (response.status === 409) {
           // Already claimed by another driver!
-          handleJobLockedByOther('another owner');
+          handleJobLockedByOther(data.approvedBy || 'another owner');
           return;
         }
 
@@ -384,8 +393,10 @@
           return;
         }
 
-        // Successfully approved
+        // Successfully approved: Hide action buttons and job details, ensure lockedNotice is hidden, show approvedNotice
         document.getElementById('modalActionButtons').classList.add('hidden');
+        document.getElementById('jobDetailsCard').classList.add('hidden');
+        document.getElementById('lockedNotice').classList.add('hidden');
         document.getElementById('approvedNotice').classList.remove('hidden');
 
         // Refresh accepted jobs table
@@ -393,10 +404,11 @@
 
         setTimeout(() => {
           closeJobModal();
-        }, 3000);
+        }, 3500);
 
       } catch (err) {
-        alert('Network error while approving job.');
+        console.error('Approval network error:', err);
+        alert('Network error while approving job: ' + (err.message || 'Check your internet connection'));
         closeJobModal();
       }
     }
@@ -423,6 +435,7 @@
 
       document.getElementById('modalActionButtons').classList.add('hidden');
       document.getElementById('jobDetailsCard').classList.add('hidden');
+      document.getElementById('approvedNotice').classList.add('hidden');
 
       const lockedNotice = document.getElementById('lockedNotice');
       document.getElementById('lockedByText').textContent = `Driver ${driverName} approved this request first!`;
@@ -430,7 +443,7 @@
 
       setTimeout(() => {
         closeJobModal();
-      }, 3000);
+      }, 3500);
     }
 
     // Toggle Online / Offline Duty

@@ -265,11 +265,29 @@ router.post('/dispatch/:id/approve', authenticateToken, async (req, res) => {
       });
     }
 
-    // 4. Retrieve owner profile details
-    const owner = await dbAsync.get(
+    // 4. Retrieve owner profile details with fallbacks
+    let owner = await dbAsync.get(
       'SELECT id, name, phone, vehicle_reg_no, vehicle_type, location FROM users WHERE id = ?',
       [ownerId]
     );
+
+    if (!owner && req.user && req.user.email) {
+      owner = await dbAsync.get(
+        'SELECT id, name, phone, vehicle_reg_no, vehicle_type, location FROM users WHERE email = ?',
+        [req.user.email]
+      );
+    }
+
+    if (!owner) {
+      owner = {
+        id: ownerId,
+        name: (req.user && req.user.name) || 'Vehicle Owner',
+        phone: (req.user && req.user.phone) || 'Not specified',
+        vehicle_reg_no: (req.user && req.user.vehicle_reg_no) || 'Not specified',
+        vehicle_type: dispatch.vehicle_type,
+        location: (req.user && req.user.location) || 'Not specified'
+      };
+    }
 
     // 5. Emit socket event to all clients so other owners' popups automatically close/lock
     const io = req.app.get('io');
@@ -277,16 +295,23 @@ router.post('/dispatch/:id/approve', authenticateToken, async (req, res) => {
       io.emit('job_locked', {
         dispatchId,
         approvedBy: owner.name,
+        approvedByUserId: owner.id,
         vehicleType: dispatch.vehicle_type
       });
     }
 
-    // 6. Send organized WhatsApp confirmation message to the requester
-    const whatsappResult = await whatsappService.sendBookingConfirmation(
-      dispatch.requester_phone,
-      owner,
-      dispatch
-    );
+    // 6. Send organized WhatsApp confirmation message to the requester (safe handling)
+    let whatsappResult = null;
+    try {
+      whatsappResult = await whatsappService.sendBookingConfirmation(
+        dispatch.requester_phone,
+        owner,
+        dispatch
+      );
+    } catch (waErr) {
+      console.error('WhatsApp dispatch warning:', waErr.message);
+      whatsappResult = { success: false, warning: waErr.message };
+    }
 
     res.json({
       success: true,
@@ -297,7 +322,7 @@ router.post('/dispatch/:id/approve', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error('Approval error:', err);
-    res.status(500).json({ success: false, error: 'Failed to process approval.' });
+    res.status(500).json({ success: false, error: err.message || 'Failed to process approval.' });
   }
 });
 

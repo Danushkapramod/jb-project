@@ -109,6 +109,7 @@ class WhatsAppService {
       }),
       puppeteer: {
         headless: true,
+        protocolTimeout: 120000,
         executablePath: execPath,
         args: [
           '--no-sandbox',

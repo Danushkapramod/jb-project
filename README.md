@@ -1,6 +1,6 @@
-# University Agri-Vehicle Dispatch & WhatsApp Notification System 🚜🌾
+# Agri-Vehicle Dispatch & WhatsApp Notification System 🚜🌾
 
-An on-demand agricultural machinery dispatch platform (similar to PickMe/Uber) built for university agricultural operations.
+An on-demand agricultural machinery dispatch platform (similar to PickMe/Uber) built for agricultural operations.
 
 ## ✨ Features
 - **Vehicle Owner Portal**: Registration & Login with 5 machinery categories:
@@ -17,7 +17,7 @@ An on-demand agricultural machinery dispatch platform (similar to PickMe/Uber) b
   - Web-based QR code scanner at `/admin.html` (no need to access the server console).
   - Automatically sends formatted, organized booking confirmations directly to the farmer/requester's WhatsApp number.
 - **External API & Sandbox Simulator**:
-  - `POST /api/dispatch` endpoint for external university agricultural forms or sensors.
+  - `POST /api/dispatch` endpoint for external agricultural forms, apps, or sensors.
   - Interactive web simulator in the Admin portal to test dispatches with a single click.
 
 ---

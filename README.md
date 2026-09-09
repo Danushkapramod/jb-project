@@ -6,9 +6,9 @@ An on-demand agricultural machinery dispatch platform (similar to PickMe/Uber) b
 - **Vehicle Owner Portal**: Registration & Login with 5 machinery categories:
   - 🚜 *Tractor*
   - 🌾 *Harvester*
-  - 🚛 *Lorry*
-  - 🚜🌾 *Combine Harvester*
-  - 💧 *Water Bowser*
+  - 🚜⚡ *PowerTiller*
+  - 💧 *WaterPump*
+  - ⚙️ *Rotavator*
 - **Real-Time PickMe-Style Dispatching**:
   - Live sound alerts (synthesized Web Audio chime).
   - Countdown timer & pop-up modal on driver's screen.

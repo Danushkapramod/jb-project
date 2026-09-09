@@ -7,16 +7,13 @@ const whatsappService = require('../services/whatsapp');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'agri_vehicle_super_secret_jwt_key_2026';
 
-// Supported Vehicle Types (including ESP32 Hardware Gadget choices)
+// Strictly Supported Vehicle Types (Tractor, Harvester, PowerTiller, WaterPump, Rotavator)
 const ALLOWED_VEHICLE_TYPES = [
   'Tractor',
   'Harvester',
   'PowerTiller',
   'WaterPump',
-  'Rotavator',
-  'Lorry',
-  'Combine Harvester',
-  'Water Bowser'
+  'Rotavator'
 ];
 
 // Middleware to authenticate JWT token

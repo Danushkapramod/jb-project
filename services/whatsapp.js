@@ -420,7 +420,6 @@ class WhatsAppService {
       `• *Destination Field/Area:* ${dispatch.location}\n` +
       `• *Notes:* ${dispatch.notes || 'None'}\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `The vehicle owner has been dispatched and will reach out to you.\n` +
       `_Agri-Vehicle Dispatch System_`;
 
     return await this.sendMessageDirect(requesterPhone, message);

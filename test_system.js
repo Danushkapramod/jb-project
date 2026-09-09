@@ -112,6 +112,23 @@ async function runTests() {
       console.error(`❌ Test 7 Failed: Number formatting failed: f1=${f1}, f2=${f2}, f3=${f3}`);
     }
 
+    // Test 8: Validate the 5 ESP32 Hardware Gadget Vehicle Types
+    const esp32Machines = ['Tractor', 'Harvester', 'PowerTiller', 'WaterPump', 'Rotavator'];
+    for (const machine of esp32Machines) {
+      const testId = `TEST-${machine}-${Date.now()}`;
+      await dbAsync.run(
+        `INSERT INTO dispatches (id, requester_phone, vehicle_type, date, location, notes, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'PENDING')`,
+        [testId, '0770001122', machine, '2026-09-15', 'Field Station Plot 1', 'ESP32 automated test']
+      );
+      const row = await dbAsync.get('SELECT * FROM dispatches WHERE id = ?', [testId]);
+      if (!row || row.vehicle_type !== machine) {
+        throw new Error(`Failed to insert dispatch for ESP32 machine: ${machine}`);
+      }
+      await dbAsync.run('DELETE FROM dispatches WHERE id = ?', [testId]);
+    }
+    console.log('✅ Test 8 Passed: All 5 ESP32 machines (Tractor, Harvester, PowerTiller, WaterPump, Rotavator) validated in database.');
+
     console.log('\n🎉 ALL LOGICAL & DATABASE TESTS PASSED SUCCESSFULLY!\n');
     process.exit(0);
 

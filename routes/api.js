@@ -7,10 +7,13 @@ const whatsappService = require('../services/whatsapp');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'agri_vehicle_super_secret_jwt_key_2026';
 
-// 5 Dummy Vehicle Types defined by the project requirement
+// Supported Vehicle Types (including ESP32 Hardware Gadget choices)
 const ALLOWED_VEHICLE_TYPES = [
   'Tractor',
   'Harvester',
+  'PowerTiller',
+  'WaterPump',
+  'Rotavator',
   'Lorry',
   'Combine Harvester',
   'Water Bowser'
@@ -180,11 +183,13 @@ router.get('/auth/me', authenticateToken, async (req, res) => {
 // Parameters: requesterPhone, vehicleType, date, location, notes
 router.post('/dispatch', async (req, res) => {
   try {
-    const { requesterPhone, vehicleType, date, location, notes } = req.body;
+    const { requesterPhone, vehicleType, date } = req.body;
+    const location = (req.body.location || 'Field Station Plot 1').trim();
+    const notes = (req.body.notes || 'Requested via ESP32 Hardware Gadget').trim();
 
-    if (!requesterPhone || !vehicleType || !date || !location) {
+    if (!requesterPhone || !vehicleType || !date) {
       return res.status(400).json({
-        error: 'Missing required parameters: requesterPhone, vehicleType, date, and location are required.'
+        error: 'Missing required parameters: requesterPhone, vehicleType, and date are required.'
       });
     }
 
@@ -199,7 +204,7 @@ router.post('/dispatch', async (req, res) => {
     await dbAsync.run(
       `INSERT INTO dispatches (id, requester_phone, vehicle_type, date, location, notes, status)
        VALUES (?, ?, ?, ?, ?, ?, 'PENDING')`,
-      [dispatchId, requesterPhone.trim(), vehicleType, date, location.trim(), (notes || '').trim()]
+      [dispatchId, requesterPhone.trim(), vehicleType, date, location, notes]
     );
 
     const dispatchPayload = {
@@ -207,8 +212,8 @@ router.post('/dispatch', async (req, res) => {
       requesterPhone: requesterPhone.trim(),
       vehicleType,
       date,
-      location: location.trim(),
-      notes: (notes || '').trim(),
+      location,
+      notes,
       status: 'PENDING',
       createdAt: new Date().toISOString()
     };
@@ -360,6 +365,40 @@ router.get('/dispatch/pending', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Pending dispatches fetch error:', err);
     res.status(500).json({ success: false, error: 'Failed to fetch pending requests.' });
+  }
+});
+
+// GET /api/dispatch/:id/status - Status check for IoT devices (ESP32) & external callers
+router.get('/dispatch/:id/status', async (req, res) => {
+  const dispatchId = req.params.id;
+  try {
+    const dispatch = await dbAsync.get(
+      `SELECT d.*, u.name as approved_owner_name, u.phone as approved_owner_phone, u.vehicle_reg_no
+       FROM dispatches d
+       LEFT JOIN users u ON d.approved_by_user_id = u.id
+       WHERE d.id = ?`,
+      [dispatchId]
+    );
+
+    if (!dispatch) {
+      return res.status(404).json({ success: false, status: 'NOT_FOUND', error: 'Dispatch request not found.' });
+    }
+
+    res.json({
+      success: true,
+      id: dispatch.id,
+      status: dispatch.status,
+      vehicleType: dispatch.vehicle_type,
+      date: dispatch.date,
+      location: dispatch.location,
+      notes: dispatch.notes,
+      driverName: dispatch.approved_owner_name || null,
+      driverPhone: dispatch.approved_owner_phone || null,
+      vehicleRegNo: dispatch.vehicle_reg_no || null
+    });
+  } catch (err) {
+    console.error('Dispatch status query error:', err);
+    res.status(500).json({ success: false, error: 'Failed to retrieve dispatch status.' });
   }
 });
 

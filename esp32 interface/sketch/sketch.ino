@@ -158,7 +158,7 @@ void sendDispatchRequest() {
     currentDispatchId = extractJsonValue(response, "id");
     Serial.println("Created Dispatch ID: " + currentDispatchId);
 
-    showLCD("REQUEST BROADCAST!", "ID: " + currentDispatchId.substring(0, 16), "Waiting for Driver", "Machine: " + selectedMachine);
+    showLCD("REQUEST BROADCAST!", "ID: " + currentDispatchId.substring(0, 16), "Waiting for Driver", "Press C to Cancel");
     currentState = WAITING_RESPONSE;
     lastPollTime = millis();
   } else {
@@ -166,12 +166,30 @@ void sendDispatchRequest() {
     if (httpCode < 0) {
       errorMsg = "Connection Refused";
     }
-    showLCD("DISPATCH FAILED!", errorMsg, "Check Tunnel URL", "Press * to restart");
+    showLCD("DISPATCH FAILED!", errorMsg, "Check Tunnel URL", "Press C to restart");
     Serial.println("Failed to dispatch request to " + endpoint);
     delay(4000);
     resetSystem();
   }
   http.end();
+}
+
+// =========================================================================
+// ❌ HTTP API CALL: Cancel Pending Dispatch on Server
+// =========================================================================
+void cancelCurrentDispatch() {
+  if (currentDispatchId != "" && WiFi.status() == WL_CONNECTED) {
+    showLCD("CANCELLING TASK...", "ID: " + currentDispatchId.substring(0, 16), "Notifying server...", "Please wait...");
+    HTTPClient http;
+    String endpoint = String(server_url) + "/api/dispatch/" + currentDispatchId + "/delete";
+    http.begin(endpoint);
+    http.addHeader("Content-Type", "application/json");
+    http.setTimeout(2500);
+    int httpCode = http.POST("{}");
+    Serial.print("Cancel dispatch HTTP response: ");
+    Serial.println(httpCode);
+    http.end();
+  }
 }
 
 // =========================================================================
@@ -205,7 +223,7 @@ void checkDriverApproval() {
       Serial.println("Plate:  " + regNo);
       Serial.println("===========================================\n");
 
-      showLCD("STATUS: APPROVED! 🚜", "Driver: " + driverName, "Phone: " + driverPhone, "WhatsApp Sent!");
+      showLCD("STATUS: APPROVED!", "Driver: " + driverName, "Phone: " + driverPhone, "WhatsApp Sent!");
       delay(6000);
       resetSystem();
       http.end();
@@ -263,10 +281,25 @@ void loop() {
   char key = keypad.getKey();
 
   if (key) {
-    // Pressing '*' or 'D' in waiting mode allows cancelling back to main menu
-    if ((key == '*' || key == 'D') && currentState == WAITING_RESPONSE) {
+    // ❌ 'C' BUTTON: CANCEL current task and return to main menu from ANY screen
+    if (key == 'C') {
+      if (currentState == WAITING_RESPONSE) {
+        cancelCurrentDispatch();
+        showLCD("REQUEST CANCELLED", "Returning to menu", "Please wait...", "");
+        delay(1200);
+      } else if (currentState != SELECT_MACHINE) {
+        showLCD("TASK CANCELLED", "Returning to menu...", "", "");
+        delay(800);
+      }
+      resetSystem();
+      return;
+    }
+
+    // In WAITING_RESPONSE mode, pressing 'B', '*', or 'D' also cancels back to main menu
+    if ((key == 'B' || key == '*' || key == 'D') && currentState == WAITING_RESPONSE) {
+      cancelCurrentDispatch();
       showLCD("REQUEST CANCELLED", "Returning to menu", "Please wait...", "");
-      delay(1500);
+      delay(1200);
       resetSystem();
       return;
     }
@@ -283,7 +316,7 @@ void loop() {
         if (selectedMachine != "") {
           phoneNumber = "";
           currentState = ENTER_PHONE;
-          showLCD("Selected: " + selectedMachine, "Enter Phone No:", "Phone: ", "Press # to Next");
+          showLCD("Mach: " + selectedMachine, "Enter Phone No:", "Phone: ", "#:Next *:Del B:Back");
         }
         break;
 
@@ -292,22 +325,25 @@ void loop() {
           if (phoneNumber.length() >= 9) {
             bookingDate = "";
             currentState = ENTER_DATE;
-            showLCD("Phone: " + phoneNumber, "Enter Date (DDMM):", "Date: ", "Press # to Submit");
+            showLCD("Phone: " + phoneNumber, "Enter Date (DDMM):", "Date: ", "#:Send *:Del B:Back");
           } else {
-            showLCD("Selected: " + selectedMachine, "Min 9 digits needed", "Phone: " + phoneNumber, "Press # to Next");
+            showLCD("Mach: " + selectedMachine, "Min 9 digits needed", "Phone: " + phoneNumber, "#:Next *:Del B:Back");
           }
+        } else if (key == 'B') {
+          // 🔙 'B' BUTTON: Go BACK to Machine Selection menu
+          resetSystem();
         } else if (key == '*') {
-          // Backspace support
+          // Backspace / Del support
           if (phoneNumber.length() > 0) {
             phoneNumber.remove(phoneNumber.length() - 1);
-            showLCD("Selected: " + selectedMachine, "Enter Phone No:", "Phone: " + phoneNumber, "Press # to Next");
+            showLCD("Mach: " + selectedMachine, "Enter Phone No:", "Phone: " + phoneNumber, "#:Next *:Del B:Back");
           } else {
             resetSystem();
           }
         } else if (key >= '0' && key <= '9') {
           if (phoneNumber.length() < 12) {
             phoneNumber += key;
-            showLCD("Selected: " + selectedMachine, "Enter Phone No:", "Phone: " + phoneNumber, "Press # to Next");
+            showLCD("Mach: " + selectedMachine, "Enter Phone No:", "Phone: " + phoneNumber, "#:Next *:Del B:Back");
           }
         }
         break;
@@ -317,21 +353,26 @@ void loop() {
           if (bookingDate.length() == 4) {
             currentState = SUBMIT;
           } else {
-            showLCD("Phone: " + phoneNumber, "Need 4 digits (DDMM)", "Date: " + bookingDate, "Press # Confirm");
+            showLCD("Phone: " + phoneNumber, "Need 4 digits (DDMM)", "Date: " + bookingDate, "#:Send *:Del B:Back");
           }
+        } else if (key == 'B') {
+          // 🔙 'B' BUTTON: Go BACK to Enter Phone screen (phone number preserved)
+          bookingDate = "";
+          currentState = ENTER_PHONE;
+          showLCD("Mach: " + selectedMachine, "Enter Phone No:", "Phone: " + phoneNumber, "#:Next *:Del B:Back");
         } else if (key == '*') {
-          // Backspace support
+          // Backspace / Del support
           if (bookingDate.length() > 0) {
             bookingDate.remove(bookingDate.length() - 1);
-            showLCD("Phone: " + phoneNumber, "Enter Date (DDMM):", "Date: " + bookingDate, "Press # Confirm");
+            showLCD("Phone: " + phoneNumber, "Enter Date (DDMM):", "Date: " + bookingDate, "#:Send *:Del B:Back");
           } else {
             currentState = ENTER_PHONE;
-            showLCD("Selected: " + selectedMachine, "Enter Phone No:", "Phone: " + phoneNumber, "Press # to Next");
+            showLCD("Mach: " + selectedMachine, "Enter Phone No:", "Phone: " + phoneNumber, "#:Next *:Del B:Back");
           }
         } else if (key >= '0' && key <= '9') {
           if (bookingDate.length() < 4) {
             bookingDate += key;
-            showLCD("Phone: " + phoneNumber, "Enter Date (DDMM):", "Date: " + bookingDate, "Press # Confirm");
+            showLCD("Phone: " + phoneNumber, "Enter Date (DDMM):", "Date: " + bookingDate, "#:Send *:Del B:Back");
           }
         }
         break;

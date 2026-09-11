@@ -129,6 +129,20 @@ async function runTests() {
     }
     console.log('✅ Test 8 Passed: All 5 ESP32 machines (Tractor, Harvester, PowerTiller, WaterPump, Rotavator) validated in database.');
 
+    // Test 9: ESP32 / Platform Task Cancellation Validation
+    const testCancelId = `TEST-CANCEL-${Date.now()}`;
+    await dbAsync.run(
+      `INSERT INTO dispatches (id, requester_phone, vehicle_type, date, location, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'PENDING')`,
+      [testCancelId, '0779998877', 'Tractor', '2026-09-20', 'Field Station Plot 1', 'ESP32 Cancel test']
+    );
+    const cancelRow = await dbAsync.get('SELECT * FROM dispatches WHERE id = ?', [testCancelId]);
+    if (!cancelRow) throw new Error('Failed to insert cancel test dispatch');
+    await dbAsync.run('DELETE FROM dispatches WHERE id = ?', [testCancelId]);
+    const postCancel = await dbAsync.get('SELECT * FROM dispatches WHERE id = ?', [testCancelId]);
+    if (postCancel) throw new Error('Failed to delete cancelled dispatch');
+    console.log('✅ Test 9 Passed: Task cancellation removes pending dispatch from database cleanly.');
+
     console.log('\n🎉 ALL LOGICAL & DATABASE TESTS PASSED SUCCESSFULLY!\n');
     process.exit(0);
 

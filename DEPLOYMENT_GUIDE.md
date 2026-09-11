@@ -1,4 +1,4 @@
-# Free Linux Server & Deployment Guide for AgriDispatch
+# Free Linux Server & Deployment Guide for Agri Connect
 
 This guide provides instructions on how to get a **free Linux server for 7+ days (up to 100% free forever)** and deploy the **Agri-Vehicle Dispatch & WhatsApp System** on it.
 

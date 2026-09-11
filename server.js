@@ -87,7 +87,7 @@ whatsappService.initialize();
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`=======================================================`);
-  console.log(`🌾 AGRI-VEHICLE DISPATCH SYSTEM SERVER IS RUNNING! 🌾`);
+  console.log(`🌾 AGRI CONNECT SERVER IS RUNNING! 🌾`);
   console.log(`📡 Local: http://localhost:${PORT}`);
   console.log(`🚜 Owner Portal: http://localhost:${PORT}/dashboard.html`);
   console.log(`📱 Admin & WhatsApp Station: http://localhost:${PORT}/admin.html`);

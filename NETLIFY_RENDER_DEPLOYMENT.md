@@ -1,4 +1,4 @@
-# Deploying AgriDispatch: Frontend on Netlify & Backend on Render 🚀
+# Deploying Agri Connect: Frontend on Netlify & Backend on Render 🚀
 
 This guide explains how to deploy the **Frontend on Netlify** and the **Backend on Render**.
 

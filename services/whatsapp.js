@@ -420,7 +420,7 @@ class WhatsAppService {
       `• *Destination Field/Area:* ${dispatch.location}\n` +
       `• *Notes:* ${dispatch.notes || 'None'}\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `_Agri-Vehicle Dispatch System_`;
+      `_Agri Connect_`;
 
     return await this.sendMessageDirect(requesterPhone, message);
   }

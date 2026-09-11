@@ -23,5 +23,5 @@
     API_URL: apiUrl.replace(/\/$/, '')
   };
 
-  console.log(`📡 AgriDispatch Backend URL: ${window.CONFIG.API_URL}`);
+  console.log(`📡 Agri Connect Backend URL: ${window.CONFIG.API_URL}`);
 })();

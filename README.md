@@ -1,4 +1,4 @@
-# Agri-Vehicle Dispatch & WhatsApp Notification System 🚜🌾
+# Agri Connect 🚜🌾
 
 An on-demand agricultural machinery dispatch platform (similar to PickMe/Uber) built for agricultural operations.
 

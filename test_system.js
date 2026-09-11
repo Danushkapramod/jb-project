@@ -1,4 +1,4 @@
-// Automated test suite for AgriDispatch backend APIs
+// Automated test suite for Agri Connect backend APIs
 const { dbAsync } = require('./db');
 const bcrypt = require('bcryptjs');
 
